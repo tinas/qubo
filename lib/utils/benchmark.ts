@@ -1,81 +1,84 @@
-export interface BenchmarkResult {
-  operationCount: number;
+interface BenchmarkResult {
+  operations: number;
   totalTime: number;
   averageTime: number;
   operationsPerSecond: number;
-  memoryUsed?: number;
+  memoryUsed: number;
 }
 
-export interface BenchmarkOptions {
-  iterations?: number;
-  warmupIterations?: number;
-  measureMemory?: boolean;
+interface BenchmarkOptions {
+  operations?: number;
+  warmup?: number;
+  gc?: boolean;
 }
 
 export class Benchmark {
-  constructor(private options: BenchmarkOptions = {}) {
-    this.options = {
-      iterations: 1000,
-      warmupIterations: 100,
-      measureMemory: false,
-      ...options
-    };
+  private readonly operations: number;
+  private readonly warmup: number;
+  private readonly gc: boolean;
+
+  constructor(options: BenchmarkOptions = {}) {
+    this.operations = options.operations ?? 1e5;
+    this.warmup = options.warmup ?? 1e3;
+    this.gc = options.gc ?? true;
   }
 
-  async measure(name: string, fn: () => any): Promise<BenchmarkResult> {
-    // Warmup phase
-    for (let i = 0; i < this.options.warmupIterations!; i++) {
-      await fn();
+  async run(testFunction: () => unknown): Promise<BenchmarkResult> {
+    // Warmup
+    for (let index = 0; index < this.warmup; index++) {
+      testFunction();
     }
 
-    // Clear garbage before measurement
-    if (global.gc) {
-      global.gc();
+    // Force garbage collection if available
+    if (this.gc && globalThis.gc) {
+      globalThis.gc();
     }
 
-    const startMemory = this.options.measureMemory ? process.memoryUsage().heapUsed : 0;
+    const startMemory = process.memoryUsage().heapUsed;
     const startTime = performance.now();
 
-    // Measurement phase
-    for (let i = 0; i < this.options.iterations!; i++) {
-      await fn();
+    // Run the test
+    for (let index = 0; index < this.operations; index++) {
+      testFunction();
     }
 
     const endTime = performance.now();
-    const endMemory = this.options.measureMemory ? process.memoryUsage().heapUsed : 0;
+    const endMemory = process.memoryUsage().heapUsed;
 
     const totalTime = endTime - startTime;
-    const result: BenchmarkResult = {
-      operationCount: this.options.iterations!,
+    const averageTime = totalTime / this.operations;
+    const operationsPerSecond = Math.floor((this.operations / totalTime) * 1000);
+    const memoryUsed = (endMemory - startMemory) / (1024 * 1024); // Convert to MB
+
+    return {
+      operations: this.operations,
       totalTime,
-      averageTime: totalTime / this.options.iterations!,
-      operationsPerSecond: (this.options.iterations! / totalTime) * 1000
+      averageTime,
+      operationsPerSecond,
+      memoryUsed,
     };
-
-    if (this.options.measureMemory) {
-      result.memoryUsed = endMemory - startMemory;
-    }
-
-    return result;
   }
+}
 
-  async compare(tests: Record<string, () => any>): Promise<Record<string, BenchmarkResult>> {
-    const results: Record<string, BenchmarkResult> = {};
-    
-    for (const [name, fn] of Object.entries(tests)) {
-      results[name] = await this.measure(name, fn);
-    }
+export function printBenchmarkResult(name: string, result: BenchmarkResult): void {
+  console.log(`\n${name}:`);
+  console.log(`Operations: ${result.operations}`);
+  console.log(`Total time: ${result.totalTime.toFixed(2)}ms`);
+  console.log(`Average time: ${result.averageTime.toFixed(3)}ms`);
+  console.log(`Operations/sec: ${result.operationsPerSecond}`);
+  console.log(`Memory used: ${result.memoryUsed.toFixed(2)}MB`);
+}
 
-    return results;
+export async function runBenchmarkSuite(
+  name: string,
+  tests: Record<string, () => unknown>,
+  options: BenchmarkOptions = {},
+): Promise<void> {
+  console.log(`\n${name}:\n`);
+  const benchmark = new Benchmark(options);
+
+  for (const [testName, testFunction] of Object.entries(tests)) {
+    const result = await benchmark.run(testFunction);
+    printBenchmarkResult(testName, result);
   }
-
-  static formatResult(result: BenchmarkResult): string {
-    return [
-      `Operations: ${result.operationCount}`,
-      `Total time: ${result.totalTime.toFixed(2)}ms`,
-      `Average time: ${result.averageTime.toFixed(3)}ms`,
-      `Operations/sec: ${result.operationsPerSecond.toFixed(0)}`,
-      result.memoryUsed ? `Memory used: ${(result.memoryUsed / 1024 / 1024).toFixed(2)}MB` : null
-    ].filter(Boolean).join('\n');
-  }
-} 
+}

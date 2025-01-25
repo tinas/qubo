@@ -1,61 +1,19 @@
-import type { IOperator } from '../operator.types';
+import { EqualOperator } from './comparison/equal.operator';
+import { GreaterThanEqualOperator } from './comparison/greater-than-equal.operator';
+import { GreaterThanOperator } from './comparison/greater-than.operator';
+import { InOperator } from './comparison/in.operator';
+import { LessThanEqualOperator } from './comparison/less-than-equal.operator';
+import { LessThanOperator } from './comparison/less-than.operator';
+import { NotEqualOperator } from './comparison/not-equal.operator';
+import { NotInOperator } from './comparison/not-in.operator';
 
-export class EqualOperator implements IOperator {
-  evaluate(value: any, targetValue: any): boolean {
-    return value === targetValue;
-  }
-}
-
-export class NotEqualOperator implements IOperator {
-  evaluate(value: any, targetValue: any): boolean {
-    return value !== targetValue;
-  }
-}
-
-export class GreaterThanOperator implements IOperator {
-  evaluate(value: any, targetValue: any): boolean {
-    return value > targetValue;
-  }
-}
-
-export class GreaterThanEqualOperator implements IOperator {
-  evaluate(value: any, targetValue: any): boolean {
-    return value >= targetValue;
-  }
-}
-
-export class LessThanOperator implements IOperator {
-  evaluate(value: any, targetValue: any): boolean {
-    return value < targetValue;
-  }
-}
-
-export class LessThanEqualOperator implements IOperator {
-  evaluate(value: any, targetValue: any): boolean {
-    return value <= targetValue;
-  }
-}
-
-export class InOperator implements IOperator {
-  evaluate(value: any, targetValue: any[]): boolean {
-    return Array.isArray(targetValue) && targetValue.includes(value);
-  }
-}
-
-export class NotInOperator implements IOperator {
-  evaluate(value: any, targetValue: any[]): boolean {
-    return Array.isArray(targetValue) && !targetValue.includes(value);
-  }
-}
-
-// Default operator map
-export const defaultOperators = new Map<string, IOperator>([
-  ['$eq', new EqualOperator()],
-  ['$ne', new NotEqualOperator()],
-  ['$gt', new GreaterThanOperator()],
-  ['$gte', new GreaterThanEqualOperator()],
-  ['$lt', new LessThanOperator()],
-  ['$lte', new LessThanEqualOperator()],
-  ['$in', new InOperator()],
-  ['$nin', new NotInOperator()],
-]); 
+export const comparisonOperators = {
+  $eq: EqualOperator,
+  $ne: NotEqualOperator,
+  $gt: GreaterThanOperator,
+  $gte: GreaterThanEqualOperator,
+  $lt: LessThanOperator,
+  $lte: LessThanEqualOperator,
+  $in: InOperator,
+  $nin: NotInOperator,
+};

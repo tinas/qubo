@@ -1,98 +1,66 @@
 import type { IOperator } from '../operator.types';
-import { LRUCache } from '../utils/lru-cache';
 
-export interface BaseOperatorOptions {
-  cacheSize?: number;
-  enableCache?: boolean;
-}
+export abstract class BaseOperator implements IOperator {
+  private cache = new Map<string, boolean>();
+  private useCache = true;
 
-export abstract class BaseOperator<TValue, TTarget> implements IOperator<TValue, TTarget> {
-  private cache: LRUCache<string, boolean>;
-  private cacheEnabled: boolean;
+  abstract evaluate(value: unknown, targetValue: unknown): boolean;
 
-  constructor(options: BaseOperatorOptions = {}) {
-    this.cacheEnabled = options.enableCache ?? true;
-    this.cache = new LRUCache<string, boolean>(options.cacheSize);
+  protected getCacheKey(value: unknown, targetValue: unknown): string {
+    return this.generateCacheKey(value) + '-' + this.generateCacheKey(targetValue);
   }
 
-  evaluate(value: TValue, targetValue: TTarget): boolean {
-    if (!this.cacheEnabled) {
-      return this.evaluateInternal(value, targetValue);
-    }
-
-    const cacheKey = this.getCacheKey(value, targetValue);
-    const cachedResult = this.cache.get(cacheKey);
-    
-    if (cachedResult !== undefined) {
-      return cachedResult;
-    }
-
-    const result = this.evaluateInternal(value, targetValue);
-    this.cache.set(cacheKey, result);
-    return result;
-  }
-
-  protected abstract evaluateInternal(value: TValue, targetValue: TTarget): boolean;
-
-  protected getCacheKey(value: TValue, targetValue: TTarget): string {
-    return `${this.getValueKey(value)}-${this.getTargetKey(targetValue)}`;
-  }
-
-  protected getValueKey(value: TValue): string {
-    if (value instanceof Date) {
-      return value.getTime().toString();
-    }
-    if (Array.isArray(value)) {
-      // For arrays, only use length in cache key to save memory
-      return `array:${value.length}`;
-    }
-    if (typeof value === 'object' && value !== null) {
-      // For objects, use constructor name and a hash of properties
-      return `${value.constructor.name}:${this.objectHash(value)}`;
-    }
+  protected generateCacheKey(value: unknown): string {
+    if (value === null || value === undefined) return 'null';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number') return value.toString();
+    if (typeof value === 'boolean') return value.toString();
+    if (value instanceof Date) return value.getTime().toString();
+    if (Array.isArray(value)) return this.generateArrayKey(value);
+    if (typeof value === 'object') return this.generateObjectKey(value as Record<string, unknown>);
     return String(value);
   }
 
-  protected getTargetKey(targetValue: TTarget): string {
-    if (targetValue instanceof Date) {
-      return targetValue.getTime().toString();
-    }
-    if (Array.isArray(targetValue)) {
-      // For arrays, use length and first few elements
-      return `array:${targetValue.length}:${targetValue.slice(0, 3).join(',')}`;
-    }
-    if (typeof targetValue === 'object' && targetValue !== null) {
-      return `${targetValue.constructor.name}:${this.objectHash(targetValue)}`;
-    }
-    return String(targetValue);
+  private generateArrayKey(array: unknown[]): string {
+    if (array.length === 0) return '[]';
+    return `[${array.slice(0, 3).map((item) => this.generateCacheKey(item)).join(',')}]`;
   }
 
-  private objectHash(obj: object): string {
-    const keys = Object.keys(obj).sort();
-    let hash = 0;
-    
-    for (const key of keys) {
-      const value = (obj as any)[key];
-      const str = `${key}:${value}`;
-      for (let i = 0; i < str.length; i++) {
-        hash = ((hash << 5) - hash) + str.charCodeAt(i);
-        hash = hash & hash; // Convert to 32-bit integer
-      }
-    }
+  private generateObjectKey(object: Record<string, unknown>): string {
+    const keys = Object.keys(object).sort();
+    if (keys.length === 0) return '{}';
+    return `{${keys.map((key) => `${key}:${this.generateCacheKey(object[key])}`).join(',')}}`;
+  }
 
-    return hash.toString(36);
+  protected hash(string_: string): number {
+    let hash = 0;
+    for (let index = 0; index < string_.length; index++) {
+      const code = string_.codePointAt(index) ?? 0;
+      hash = ((hash << 5) - hash) + code;
+      hash = Math.trunc(hash);
+    }
+    return hash;
+  }
+
+  enableCache(): void {
+    this.useCache = true;
+  }
+
+  disableCache(): void {
+    this.useCache = false;
   }
 
   clearCache(): void {
     this.cache.clear();
   }
 
-  enableCache(): void {
-    this.cacheEnabled = true;
+  protected getFromCache(key: string): boolean | undefined {
+    if (!this.useCache) return undefined;
+    return this.cache.get(key);
   }
 
-  disableCache(): void {
-    this.cacheEnabled = false;
-    this.clearCache();
+  protected setInCache(key: string, value: boolean): void {
+    if (!this.useCache) return;
+    this.cache.set(key, value);
   }
-} 
+}

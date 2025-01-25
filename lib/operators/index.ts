@@ -7,10 +7,10 @@ export const allOperators = new Map([
   ...comparisonOperators,
   ...stringOperators,
   ...dateOperators,
-  ...arrayOperators
+  ...arrayOperators,
 ]);
 
 export * from './comparison';
 export * from './string';
 export * from './date';
-export * from './array'; 
+export * from './array';
