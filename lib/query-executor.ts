@@ -47,6 +47,17 @@ export class QueryExecutor<T> implements IQueryExecutor<T> {
   }
 
   /**
+   * Evaluates if a single item matches the given query.
+   * 
+   * @param item - The item to evaluate
+   * @param query - The query to evaluate against
+   * @returns True if the item matches the query, false otherwise
+   */
+  evaluate(item: T, query: Query<T>): boolean {
+    return this.evaluateQuery(item, query);
+  }
+
+  /**
    * Adds a custom operator at runtime.
    * Custom operator names must start with $.
    * 

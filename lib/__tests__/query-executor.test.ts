@@ -1,5 +1,6 @@
 import { QueryExecutor } from '../query-executor';
 import { BaseOperator } from '../operators/base.operator';
+import { ArrayContainsOperator } from '../operators/array/contains.operator';
 
 describe('QueryExecutor', () => {
   // Sample data for testing
@@ -230,6 +231,117 @@ describe('QueryExecutor', () => {
       (executor as any).operators = operators;
       const result = executor.find({ name: 'John' });
       expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('evaluate', () => {
+    it('should evaluate single item against exact value', () => {
+      const item = sampleData[0];
+      expect(executor.evaluate(item, { name: 'John' })).toBe(true);
+      expect(executor.evaluate(item, { name: 'Jane' })).toBe(false);
+    });
+
+    it('should evaluate single item against comparison operators', () => {
+      const item = sampleData[0];
+      expect(executor.evaluate(item, { age: { $gt: 25 } })).toBe(true);
+      expect(executor.evaluate(item, { age: { $lt: 25 } })).toBe(false);
+    });
+
+    it('should evaluate single item against multiple conditions', () => {
+      const item = sampleData[0];
+      expect(executor.evaluate(item, {
+        age: { $gt: 25 },
+        active: true
+      })).toBe(true);
+
+      expect(executor.evaluate(item, {
+        age: { $gt: 25 },
+        active: false
+      })).toBe(false);
+    });
+
+    it('should evaluate single item against nested fields', () => {
+      const item = sampleData[0];
+      expect(executor.evaluate(item, { 'nested.value': 10 })).toBe(true);
+      expect(executor.evaluate(item, { 'nested.value': { $gt: 5 } })).toBe(true);
+      expect(executor.evaluate(item, { 'nested.value': { $gt: 15 } })).toBe(false);
+    });
+
+    it('should evaluate single item against array fields', () => {
+      executor.addOperator('$contains', new ArrayContainsOperator());
+      const item = sampleData[0];
+      expect(executor.evaluate(item, { roles: { $contains: 'user' } })).toBe(true);
+      expect(executor.evaluate(item, { roles: { $contains: 'admin' } })).toBe(false);
+    });
+
+    it('should evaluate single item against complex logical conditions', () => {
+      const item = sampleData[0];
+      expect(executor.evaluate(item, {
+        $and: [
+          { age: { $gt: 25 } },
+          { 
+            $or: [
+              { name: 'John' },
+              { name: 'Jane' }
+            ]
+          }
+        ]
+      })).toBe(true);
+
+      expect(executor.evaluate(item, {
+        $and: [
+          { age: { $gt: 35 } },
+          { 
+            $or: [
+              { name: 'John' },
+              { name: 'Jane' }
+            ]
+          }
+        ]
+      })).toBe(false);
+    });
+
+    it('should evaluate single item against non-existent fields', () => {
+      const item = sampleData[0];
+      expect(executor.evaluate(item, { nonexistent: 'value' })).toBe(false);
+      expect(executor.evaluate(item, { 'nested.nonexistent': 'value' })).toBe(false);
+    });
+
+    it('should evaluate single item with custom operators', () => {
+      class ContainsOperator extends BaseOperator<string, string> {
+        evaluate(value: string, target: string): boolean {
+          return value.includes(target);
+        }
+      }
+
+      executor.addOperator('$contains', new ContainsOperator());
+      const item = sampleData[0];
+      expect(executor.evaluate(item, { name: { $contains: 'oh' } })).toBe(true);
+      expect(executor.evaluate(item, { name: { $contains: 'xyz' } })).toBe(false);
+    });
+
+    it('should evaluate single item against null and undefined values', () => {
+      const itemWithNull = { ...sampleData[0], optional: null };
+      const itemWithUndefined = { ...sampleData[0], optional: undefined };
+
+      expect(executor.evaluate(itemWithNull, { optional: null })).toBe(true);
+      expect(executor.evaluate(itemWithUndefined, { optional: undefined })).toBe(true);
+      expect(executor.evaluate(itemWithNull, { optional: undefined })).toBe(false);
+    });
+
+    it('should evaluate single item against date values', () => {
+      const itemWithDate = { 
+        ...sampleData[0], 
+        createdAt: new Date('2024-01-01') 
+      };
+
+      expect(executor.evaluate(itemWithDate, { 
+        createdAt: { $gt: new Date('2023-12-31') } 
+      })).toBe(true);
+
+      expect(executor.evaluate(itemWithDate, { 
+        createdAt: { $lt: new Date('2023-12-31') } 
+      })).toBe(false);
     });
   });
 }); 
