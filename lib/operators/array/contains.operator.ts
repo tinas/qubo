@@ -1,7 +1,8 @@
-import type { IOperator } from '../../operator.types';
+import type { IArrayOperator } from '../../operator.types';
+import type { QueryValue } from '../../query.types';
 
-export class ArrayContainsOperator implements IOperator {
-  evaluate(value: any[], targetValue: any): boolean {
+export class ArrayContainsOperator implements IArrayOperator<QueryValue, QueryValue> {
+  evaluate(value: QueryValue[], targetValue: QueryValue): boolean {
     return Array.isArray(value) && value.includes(targetValue);
   }
 } 

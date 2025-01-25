@@ -3,7 +3,7 @@
  * @template TValue - The type of the value to evaluate
  * @template TTarget - The type of the target value to compare against
  */
-export interface IOperator<TValue = any, TTarget = any> {
+export interface IOperator<TValue, TTarget> {
   /**
    * Evaluates if the given value matches the target value according to the operator's logic.
    * @param value - The value to evaluate
@@ -16,7 +16,7 @@ export interface IOperator<TValue = any, TTarget = any> {
 /**
  * A map of operator names to their implementations.
  */
-export type OperatorMap = Map<string, IOperator>;
+export type OperatorMap = Map<string, IOperator<unknown, unknown>>;
 
 /**
  * Built-in comparison operator types.
@@ -35,10 +35,11 @@ export type LogicalOperator = '$and' | '$or' | '$not';
 export interface IComparisonOperator<T> extends IOperator<T, T> {}
 
 /**
- * Interface for array operators that work with arrays of any type.
+ * Interface for array operators that work with arrays.
  * @template T - The type of array elements
+ * @template TTarget - The type of the target value
  */
-export interface IArrayOperator<T = any> extends IOperator<T[], any> {}
+export interface IArrayOperator<T, TTarget> extends IOperator<T[], TTarget> {}
 
 /**
  * Interface for string operators that work with string values.
@@ -49,4 +50,9 @@ export interface IStringOperator extends IOperator<string, string> {}
  * Interface for date operators that work with Date objects.
  * @template TTarget - The type of the target value (Date or string)
  */
-export interface IDateOperator<TTarget = Date | string> extends IOperator<Date, TTarget> {} 
+export interface IDateOperator<TTarget = Date | string> extends IOperator<Date, TTarget> {}
+
+/**
+ * Type for values that can be compared with > < >= <= operators
+ */
+export type ComparableValue = string | number | Date; 

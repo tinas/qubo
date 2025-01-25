@@ -54,7 +54,7 @@ export class QueryExecutor<T> implements IQueryExecutor<T> {
    * @param operator - The operator implementation
    * @throws Error if the operator name doesn't start with $
    */
-  addOperator(name: string, operator: IOperator): void {
+  addOperator(name: string, operator: IOperator<unknown, unknown>): void {
     if (!name.startsWith('$')) {
       throw new Error('Custom operator names must start with $');
     }

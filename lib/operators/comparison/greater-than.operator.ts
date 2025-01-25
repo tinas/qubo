@@ -1,7 +1,7 @@
-import type { IOperator } from '../../operator.types';
+import type { ComparableValue, IOperator } from '../../operator.types';
 
-export class GreaterThanOperator implements IOperator {
-  evaluate(value: any, targetValue: any): boolean {
+export class GreaterThanOperator implements IOperator<ComparableValue, ComparableValue> {
+  evaluate(value: ComparableValue, targetValue: ComparableValue): boolean {
     return value > targetValue;
   }
 } 

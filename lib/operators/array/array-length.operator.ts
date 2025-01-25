@@ -12,7 +12,7 @@ import { BaseOperator } from '../base.operator';
  * operator.evaluate(['a', 'b'], 3); // returns false
  * operator.evaluate('not an array', 3); // returns false
  */
-export class ArrayLengthOperator<T> extends BaseOperator<T[], number> implements IArrayOperator<T> {
+export class ArrayLengthOperator<T> extends BaseOperator<T[], number> implements IArrayOperator<T, number> {
   /**
    * Evaluates if the array's length matches the target value.
    * 
@@ -25,16 +25,13 @@ export class ArrayLengthOperator<T> extends BaseOperator<T[], number> implements
   }
 
   /**
-   * Generates a cache key for the array length check.
-   * Only needs to consider the array length and target value.
+   * Generates a cache key for the given value and target value.
    * 
-   * @param value - The array to generate a key for
-   * @param targetValue - The target length
+   * @param value - The array to check
+   * @param targetValue - The expected length
    * @returns A string key for caching
-   * @protected
    */
   protected getCacheKey(value: T[], targetValue: number): string {
-    // Only need to cache based on array length and target value
-    return `${Array.isArray(value) ? value.length : 'invalid'}-${targetValue}`;
+    return `${Array.isArray(value) ? value.length : 'not-array'}-${targetValue}`;
   }
 } 
