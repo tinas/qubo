@@ -42,15 +42,17 @@ export class DateBetweenOperator extends BaseOperator<Date, [Date | string, Date
     if (isNaN(value.getTime())) return 'invalid';
 
     try {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
+      const start = startDate instanceof Date ? startDate : new Date(startDate);
+      const end = endDate instanceof Date ? endDate : new Date(endDate);
+      
+      // Check for NaN before using the values
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        return 'invalid';
+      }
+
       const valueTime = value.getTime();
       const startTime = start.getTime();
       const endTime = end.getTime();
-
-      if (isNaN(valueTime) || isNaN(startTime) || isNaN(endTime)) {
-        return 'invalid';
-      }
 
       // For dates without time components, use date-only values in cache key
       if ((typeof startDate === 'string' && !startDate.includes('T')) ||

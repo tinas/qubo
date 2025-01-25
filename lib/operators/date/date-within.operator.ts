@@ -9,7 +9,7 @@ export class DateWithinOperator extends BaseOperator<Date, { days: number }> imp
 
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - value.getTime());
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = diffTime / (1000 * 60 * 60 * 24);
     return diffDays <= targetValue.days;
   }
 

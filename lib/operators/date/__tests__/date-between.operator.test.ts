@@ -142,6 +142,20 @@ describe('DateBetweenOperator', () => {
       expect(operator.getCacheKey(invalidDate, [validDate, validDate])).toBe('invalid');
       expect(operator.getCacheKey(validDate, [invalidDate, validDate])).toBe('invalid');
       expect(operator.getCacheKey(validDate, [validDate, invalidDate])).toBe('invalid');
+      
+      // Test when getTime() returns NaN
+      const mockDate = new Date('2024-01-25');
+      Object.defineProperty(mockDate, 'getTime', {
+        value: () => NaN
+      });
+      expect(operator.getCacheKey(validDate, [mockDate, validDate])).toBe('invalid');
+    });
+
+    it('should handle invalid date strings in cache key generation', () => {
+      const operator = new DateBetweenOperator();
+      const validDate = new Date('2024-01-25');
+      const invalidDateString = '2024-99-99'; // Invalid month and day
+      expect(operator.getCacheKey(validDate, [invalidDateString, '2024-01-26'])).toBe('invalid');
     });
 
     it('should cache evaluation results', () => {
