@@ -34,6 +34,18 @@ export abstract class BaseOperator<T, C = unknown> {
   }
 
   /**
+   * Exposes the protected getCacheKey method for testing purposes.
+   * This method should only be used in tests.
+   *
+   * @param value - The value to generate a key for
+   * @param targetValue - The target value to generate a key for
+   * @returns A string key that uniquely identifies the value pair
+   */
+  getCacheKeyForTesting(value: T, targetValue: unknown): string {
+    return this.getCacheKey(value, targetValue);
+  }
+
+  /**
    * Generates a cache key for a single value.
    * Handles different types of values (null, string, number, boolean, Date, Array, Object).
    *
