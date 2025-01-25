@@ -103,5 +103,12 @@ describe('DateAfterOperator', () => {
       expect(result1).toBe(true);
       expect(result2).toBe(true);
     });
+
+    it('should handle errors in date parsing', () => {
+      const date = new Date('2024-01-25T12:00:00Z');
+      // Create a string that will throw an error when parsed
+      const malformedDate = { toString: () => { throw new Error('Parse error'); } };
+      expect(operator.getCacheKeyForTesting(date, malformedDate as any)).toBe('invalid');
+    });
   });
 }); 
