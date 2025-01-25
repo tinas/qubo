@@ -1,5 +1,3 @@
-import type { IOperator } from '../operator.types';
-
 /**
  * Base operator class that provides common functionality for all operators.
  * Implements caching and key generation for improved performance.
@@ -7,19 +5,21 @@ import type { IOperator } from '../operator.types';
  * @template TValue - The type of the value to evaluate
  * @template TTarget - The type of the target value to compare against
  */
-export abstract class BaseOperator<TValue = unknown, TTarget = unknown> implements IOperator<TValue, TTarget> {
+export abstract class BaseOperator<T, C = unknown> {
   private cache = new Map<string, boolean>();
   private useCache = true;
+  private objectReferenceMap = new WeakMap<object, string>();
+  private nextObjectId = 1;
 
   /**
    * Abstract method that must be implemented by all operators.
    * Evaluates if the given value matches the target value according to the operator's logic.
    *
    * @param value - The value to evaluate
-   * @param targetValue - The target value to compare against
+   * @param condition - The target value to compare against
    * @returns True if the value matches the target value according to the operator's logic
    */
-  abstract evaluate(value: TValue, targetValue: TTarget): boolean;
+  abstract evaluate(value: T, condition: C): boolean;
 
   /**
    * Generates a cache key for the given value and target value pair.
@@ -29,8 +29,8 @@ export abstract class BaseOperator<TValue = unknown, TTarget = unknown> implemen
    * @returns A string key that uniquely identifies the value pair
    * @protected
    */
-  protected getCacheKey(value: TValue, targetValue: TTarget): string {
-    return this.generateCacheKey(value) + '-' + this.generateCacheKey(targetValue);
+  protected getCacheKey(value: T, targetValue: unknown): string {
+    return `${this.generateCacheKey(value)}-${this.generateCacheKey(targetValue)}`;
   }
 
   /**
@@ -42,40 +42,31 @@ export abstract class BaseOperator<TValue = unknown, TTarget = unknown> implemen
    * @protected
    */
   protected generateCacheKey(value: unknown): string {
-    if (value === null || value === undefined) return 'null';
-    if (typeof value === 'string') return value;
-    if (typeof value === 'number') return value.toString();
-    if (typeof value === 'boolean') return value.toString();
-    if (value instanceof Date) return value.getTime().toString();
-    if (Array.isArray(value)) return this.generateArrayKey(value);
-    if (typeof value === 'object') return this.generateObjectKey(value as Record<string, unknown>);
-    return String(value);
-  }
+    if (value === null) return 'null';
+    if (value === undefined) return 'undefined';
+    if (typeof value === 'string') return `str:${value}`;
+    if (typeof value === 'number') return `num:${value}`;
+    if (typeof value === 'boolean') return `bool:${value}`;
+    if (value instanceof Date) {
+      let referenceId = this.objectReferenceMap.get(value);
+      if (!referenceId) {
+        referenceId = `ref_${this.nextObjectId++}`;
+        this.objectReferenceMap.set(value, referenceId);
+      }
+      return `date:${referenceId}`;
+    }
 
-  /**
-   * Generates a cache key for an array value.
-   * Uses up to first 3 elements for performance.
-   *
-   * @param array - The array to generate a key for
-   * @returns A string key that uniquely identifies the array
-   * @private
-   */
-  private generateArrayKey(array: unknown[]): string {
-    if (array.length === 0) return '[]';
-    return `[${array.slice(0, 3).map((item) => this.generateCacheKey(item)).join(',')}]`;
-  }
+    // For objects and arrays, use reference-based keys
+    if (typeof value === 'object') {
+      let referenceId = this.objectReferenceMap.get(value);
+      if (!referenceId) {
+        referenceId = `ref_${this.nextObjectId++}`;
+        this.objectReferenceMap.set(value, referenceId);
+      }
+      return referenceId;
+    }
 
-  /**
-   * Generates a cache key for an object value.
-   *
-   * @param object - The object to generate a key for
-   * @returns A string key that uniquely identifies the object
-   * @private
-   */
-  private generateObjectKey(object: Record<string, unknown>): string {
-    const keys = Object.keys(object).sort();
-    if (keys.length === 0) return '{}';
-    return `{${keys.map((key) => `${key}:${this.generateCacheKey(object[key])}`).join(',')}}`;
+    return `other:${String(value)}`;
   }
 
   /**

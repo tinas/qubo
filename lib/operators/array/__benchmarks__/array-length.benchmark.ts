@@ -1,4 +1,4 @@
-import { Benchmark, runBenchmarkSuite } from '../../../utils/benchmark';
+import { Benchmark, runBenchmarkSuite } from '../../../../tools/benchmark';
 import { ArrayLengthOperator } from '../array-length.operator';
 
 async function runBenchmarks() {

@@ -1,4 +1,4 @@
-import { Benchmark, runBenchmarkSuite } from '../../../utils/benchmark';
+import { Benchmark, runBenchmarkSuite } from '../../../../tools/benchmark';
 import { ContainsOperator } from '../contains.operator';
 
 async function runBenchmarks() {

@@ -4,13 +4,13 @@
     "module": "commonjs",
     "declaration": true,
     "outDir": "./dist",
-    "rootDir": "./lib",
+    "rootDirs": ["./lib", "./tools"],
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node"
   },
-  "include": ["lib/**/*"],
+  "include": ["lib/**/*", "tools/**/*"],
   "exclude": ["node_modules", "dist", "**/__tests__/*"]
 } 
