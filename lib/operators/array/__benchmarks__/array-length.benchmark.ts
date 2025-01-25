@@ -1,60 +1,39 @@
-import { Benchmark } from '../../../utils/benchmark';
+import { Benchmark, runBenchmarkSuite } from '../../../utils/benchmark';
 import { ArrayLengthOperator } from '../array-length.operator';
 
 async function runBenchmarks() {
-  const benchmark = new Benchmark({ iterations: 100000, measureMemory: true });
   const operator = new ArrayLengthOperator();
 
-  // Small array test
-  const smallArray = Array.from({ length: 10 }, (_, i) => i);
-  
-  const smallResults = await benchmark.compare({
-    'small-array-hit': () => operator.evaluate(smallArray, 10),
-    'small-array-miss': () => operator.evaluate(smallArray, 20),
+  // Small array tests
+  await runBenchmarkSuite('Small Array Tests', {
+    'small-array-hit': () => operator.evaluate([1, 2, 3], 3),
+    'small-array-miss': () => operator.evaluate([1, 2], 3),
     'small-array-cached': () => {
-      operator.evaluate(smallArray, 10);
-      operator.evaluate(smallArray, 10);
-      return operator.evaluate(smallArray, 10);
+      // Same value multiple times to test caching
+      operator.evaluate([1, 2, 3], 3);
+      operator.evaluate([1, 2, 3], 3);
+      return operator.evaluate([1, 2, 3], 3);
     }
-  });
+  }, { operations: 100000 });
 
-  console.log('Small Array Tests:');
-  Object.entries(smallResults).forEach(([name, result]) => {
-    console.log(`\n${name}:`);
-    console.log(Benchmark.formatResult(result));
-  });
-
-  // Large array test
+  // Large array tests
   const largeArray = Array.from({ length: 10000 }, (_, i) => i);
-  
-  const largeResults = await benchmark.compare({
+  await runBenchmarkSuite('Large Array Tests', {
     'large-array-hit': () => operator.evaluate(largeArray, 10000),
-    'large-array-miss': () => operator.evaluate(largeArray, 20000),
+    'large-array-miss': () => operator.evaluate(largeArray, 9999),
     'large-array-cached': () => {
       operator.evaluate(largeArray, 10000);
       operator.evaluate(largeArray, 10000);
       return operator.evaluate(largeArray, 10000);
     }
-  });
+  }, { operations: 100000 });
 
-  console.log('\nLarge Array Tests:');
-  Object.entries(largeResults).forEach(([name, result]) => {
-    console.log(`\n${name}:`);
-    console.log(Benchmark.formatResult(result));
-  });
-
-  // Invalid input test
-  const invalidResults = await benchmark.compare({
-    'null-input': () => operator.evaluate(null as any, 0),
-    'undefined-input': () => operator.evaluate(undefined as any, 0),
-    'non-array-input': () => operator.evaluate({} as any, 0)
-  });
-
-  console.log('\nInvalid Input Tests:');
-  Object.entries(invalidResults).forEach(([name, result]) => {
-    console.log(`\n${name}:`);
-    console.log(Benchmark.formatResult(result));
-  });
+  // Invalid input tests
+  await runBenchmarkSuite('Invalid Input Tests', {
+    'null-input': () => operator.evaluate(null as any, 3),
+    'undefined-input': () => operator.evaluate(undefined as any, 3),
+    'non-array-input': () => operator.evaluate('not an array' as any, 3)
+  }, { operations: 100000 });
 }
 
 runBenchmarks().catch(console.error); 
