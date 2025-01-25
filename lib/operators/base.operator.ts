@@ -1,12 +1,12 @@
 import type { IOperator } from '../operator.types';
 
-export abstract class BaseOperator implements IOperator {
+export abstract class BaseOperator<TValue = unknown, TTarget = unknown> implements IOperator<TValue, TTarget> {
   private cache = new Map<string, boolean>();
   private useCache = true;
 
-  abstract evaluate(value: unknown, targetValue: unknown): boolean;
+  abstract evaluate(value: TValue, targetValue: TTarget): boolean;
 
-  protected getCacheKey(value: unknown, targetValue: unknown): string {
+  protected getCacheKey(value: TValue, targetValue: TTarget): string {
     return this.generateCacheKey(value) + '-' + this.generateCacheKey(targetValue);
   }
 

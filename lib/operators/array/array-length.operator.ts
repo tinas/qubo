@@ -2,8 +2,7 @@ import type { IArrayOperator } from '../../operator.types';
 import { BaseOperator } from '../base.operator';
 
 export class ArrayLengthOperator<T> extends BaseOperator<T[], number> implements IArrayOperator<T> {
-  protected evaluateInternal(value: T[], targetValue: number): boolean {
-    // Array.isArray check is faster than instanceof Array
+  evaluate(value: T[], targetValue: number): boolean {
     return Array.isArray(value) && value.length === targetValue;
   }
 

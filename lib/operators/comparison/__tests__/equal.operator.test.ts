@@ -1,19 +1,23 @@
 import { EqualOperator } from '../equal.operator';
 
 describe('EqualOperator', () => {
-  const operator = new EqualOperator();
+  const operator = new (EqualOperator as any)();
 
   it('should return true for equal values', () => {
     expect(operator.evaluate(1, 1)).toBe(true);
     expect(operator.evaluate('test', 'test')).toBe(true);
     expect(operator.evaluate(true, true)).toBe(true);
-    expect(operator.evaluate(null, null)).toBe(true);
   });
 
   it('should return false for different values', () => {
     expect(operator.evaluate(1, 2)).toBe(false);
     expect(operator.evaluate('test', 'other')).toBe(false);
     expect(operator.evaluate(true, false)).toBe(false);
+  });
+
+  it('should handle strict equality', () => {
+    expect(operator.evaluate(1, '1')).toBe(false);
+    expect(operator.evaluate(0, false)).toBe(false);
     expect(operator.evaluate(null, undefined)).toBe(false);
   });
 

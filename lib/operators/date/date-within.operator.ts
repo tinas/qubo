@@ -2,7 +2,7 @@ import type { IDateOperator } from '../../operator.types';
 import { BaseOperator } from '../base.operator';
 
 export class DateWithinOperator extends BaseOperator<Date, { days: number }> implements IDateOperator<{ days: number }> {
-  protected evaluateInternal(value: Date, targetValue: { days: number }): boolean {
+  evaluate(value: Date, targetValue: { days: number }): boolean {
     if (!(value instanceof Date)) return false;
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - value.getTime());
