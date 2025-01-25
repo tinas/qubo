@@ -63,6 +63,9 @@ export class ContainsOperator extends BaseOperator<string, string> implements IS
    * @protected
    */
   protected getCacheKey(value: string, targetValue: string): string {
+    // Handle null and undefined values
+    if (!value || !targetValue) return `${value}:${targetValue}`;
+    
     // For strings, we can use a simple concatenation
     // Add length to handle empty strings correctly
     return `${value.length}:${value}-${targetValue.length}:${targetValue}`;

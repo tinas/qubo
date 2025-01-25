@@ -1,4 +1,5 @@
 import type { IOperator } from '../../operator.types';
+import type { QueryValue } from '../../query.types';
 import { EqualOperator } from './equal.operator';
 import { GreaterThanOperator } from './greater-than.operator';
 import { GreaterThanEqualOperator } from './greater-than-equal.operator';
@@ -10,7 +11,7 @@ import { NotInOperator } from './not-in.operator';
 // ... import other operators
 
 // Default operator map
-export const comparisonOperators = new Map<string, IOperator>([
+export const comparisonOperators = new Map<string, IOperator<QueryValue, any>>([
   ['$eq', new EqualOperator()],
   ['$gt', new GreaterThanOperator()],
   ['$gte', new GreaterThanEqualOperator()],

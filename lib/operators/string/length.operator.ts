@@ -1,7 +1,8 @@
 import type { IOperator } from '../../operator.types';
 
-export class StringLengthOperator implements IOperator {
+export class StringLengthOperator implements IOperator<string, number> {
   evaluate(value: string, targetValue: number): boolean {
-    return typeof value === 'string' && value.length === targetValue;
+    if (typeof value !== 'string' || typeof targetValue !== 'number') return false;
+    return Array.from(value).length === targetValue;
   }
 } 

@@ -1,4 +1,5 @@
 import type { IOperator } from '../../operator.types';
+import type { QueryValue } from '../../query.types';
 import { DateWithinOperator } from './date-within.operator';
 import { DateBetweenOperator } from './date-between.operator';
 import { DateAfterOperator } from './date-after.operator';
@@ -6,7 +7,7 @@ import { DateBeforeOperator } from './date-before.operator';
 import { SameDayOperator } from './same-day.operator';
 // ... import other operators
 
-export const dateOperators = new Map<string, IOperator>([
+export const dateOperators = new Map<string, IOperator<Date, any>>([
   ['$dateWithin', new DateWithinOperator()],
   ['$dateBetween', new DateBetweenOperator()],
   ['$dateAfter', new DateAfterOperator()],

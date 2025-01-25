@@ -1,4 +1,5 @@
 import type { IOperator } from '../../operator.types';
+import type { QueryValue } from '../../query.types';
 import { ContainsOperator } from './contains.operator';
 import { StartsWithOperator } from './starts-with.operator';
 import { EndsWithOperator } from './ends-with.operator';
@@ -6,7 +7,7 @@ import { RegexOperator } from './regex.operator';
 import { StringLengthOperator } from './length.operator';
 // ... import other operators
 
-export const stringOperators = new Map<string, IOperator>([
+export const stringOperators = new Map<string, IOperator<string, any>>([
   ['$contains', new ContainsOperator()],
   ['$startsWith', new StartsWithOperator()],
   ['$endsWith', new EndsWithOperator()],
