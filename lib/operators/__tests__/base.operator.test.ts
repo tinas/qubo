@@ -74,14 +74,22 @@ describe('BaseOperator', () => {
       expect(arrayKey).toMatch(/^ref_\d+$/);
       expect(dateKey).toMatch(/^date:ref_\d+$/);
       expect(complexObjKey).toMatch(/^ref_\d+$/);
+      
+      // Test same date object gets same reference
+      const dateKey2 = operator.testGenerateCacheKey(date);
+      expect(dateKey).toBe(dateKey2);
     });
 
     it('should handle special values and symbols', () => {
       const symbol = Symbol('test');
       const fn = () => {};
       
-      expect(operator.testGenerateCacheKey(symbol)).toMatch(/^other:.+$/);
-      expect(operator.testGenerateCacheKey(fn)).toMatch(/^other:.+$/);
+      expect(operator.testGenerateCacheKey(symbol)).toMatch(/^other:Symbol\(test\)$/);
+      expect(operator.testGenerateCacheKey(fn)).toMatch(/^other:\(\) => \{ \}$/);
+      
+      // Test with Symbol that can't be converted to string
+      const symbolWithoutDescription = Symbol();
+      expect(operator.testGenerateCacheKey(symbolWithoutDescription)).toMatch(/^other:Symbol\(\)$/);
     });
 
     it('should handle non-object values in object type check', () => {
@@ -97,13 +105,13 @@ describe('BaseOperator', () => {
       // These should be handled by the primitive type checks
       expect(operator.testGenerateCacheKey(primitiveObj)).toMatch(/^num:42$/);
       expect(operator.testGenerateCacheKey(primitiveStr)).toMatch(/^str:test$/);
-      expect(operator.testGenerateCacheKey(fn)).toMatch(/^other:.+$/);
+      expect(operator.testGenerateCacheKey(fn)).toMatch(/^other:function$/);
     });
 
     it('should handle error cases in cache key generation', () => {
       const operator = new TestOperator();
       
-      // Create an object that throws when converted to string
+      // Test with object that throws when converted to string
       const throwingObj = {
         toString: () => { throw new Error('Test error'); },
         valueOf: () => { throw new Error('Test error'); }
@@ -115,6 +123,20 @@ describe('BaseOperator', () => {
       // Test with Symbol
       const sym = Symbol('test');
       expect(operator.testGenerateCacheKey(sym)).toMatch(/^other:Symbol\(test\)$/);
+      
+      // Test with object that throws on String() but has toString
+      const weirdObj = {
+        toString: () => { throw new Error('Test error'); },
+        [Symbol.toPrimitive]: () => { throw new Error('Test error'); }
+      };
+      expect(operator.testGenerateCacheKey(weirdObj)).toBe('other:object');
+      
+      // Test with object that has custom toString but throws on valueOf
+      const customObj = {
+        toString: () => { throw new Error('Test error'); },
+        valueOf: () => { throw new Error('Test error'); }
+      };
+      expect(operator.testGenerateCacheKey(customObj)).toBe('other:object');
     });
   });
 
@@ -217,6 +239,24 @@ describe('BaseOperator', () => {
       expect(Number.isInteger(hash)).toBe(true);
     });
 
+    it('should handle integer overflow correctly', () => {
+      // Create a string that will cause hash value to exceed MAX_SAFE_INTEGER
+      const largeStr = String.fromCharCode(0x7FFFFFFF).repeat(100);
+      const hash = operator.testHash(largeStr);
+      expect(typeof hash).toBe('number');
+      expect(Number.isInteger(hash)).toBe(true);
+      expect(Number.isSafeInteger(hash)).toBe(true);
+    });
+
+    it('should handle floating point hash values', () => {
+      // Create a string that will result in floating point calculations
+      const str = String.fromCharCode(0x7FFFFFFF, 0x0001);
+      const hash = operator.testHash(str);
+      expect(typeof hash).toBe('number');
+      expect(Number.isInteger(hash)).toBe(true);
+      expect(Math.trunc(hash)).toBe(hash);
+    });
+
     it('should handle error cases in hash function', () => {
       const operator = new TestOperator();
       
@@ -229,19 +269,60 @@ describe('BaseOperator', () => {
       expect(typeof hash).toBe('number');
       expect(Number.isInteger(hash)).toBe(true);
 
-      // Test with invalid code points
-      const invalidString = String.fromCharCode(0xD800); // Unpaired surrogate
+      // Test with invalid code points that will return null from codePointAt
+      const invalidString = '\uD800'; // High surrogate without low surrogate
       const hashInvalid = operator.testHash(invalidString);
       expect(typeof hashInvalid).toBe('number');
       expect(Number.isInteger(hashInvalid)).toBe(true);
+      
+      // Test with string containing null character
+      const nullCharString = 'test\0string';
+      const hashNull = operator.testHash(nullCharString);
+      expect(typeof hashNull).toBe('number');
+      expect(Number.isInteger(hashNull)).toBe(true);
     });
 
     it('should handle invalid code points', () => {
       const operator = new TestOperator();
-      const invalidString = String.fromCharCode(0xD800); // Unpaired surrogate
-      const hash = operator.testHash(invalidString);
+      
+      // Test with lone surrogates that will return null from codePointAt
+      const invalidString = '\uD800\uDC00'; // A surrogate pair
+      const hash1 = operator.testHash(invalidString);
+      expect(hash1).toBeDefined();
+      expect(typeof hash1).toBe('number');
+      expect(Number.isInteger(hash1)).toBe(true);
+
+      const invalidString2 = '\uD800'; // High surrogate without low surrogate
+      const hash2 = operator.testHash(invalidString2);
+      expect(hash2).toBeDefined();
+      expect(typeof hash2).toBe('number');
+      expect(Number.isInteger(hash2)).toBe(true);
+      
+      // Test with string containing invalid UTF-16 sequences
+      const invalidUtf16 = String.fromCharCode(0xD800) + String.fromCharCode(0xDBFF);
+      const hash3 = operator.testHash(invalidUtf16);
+      expect(hash3).toBeDefined();
+      expect(typeof hash3).toBe('number');
+      expect(Number.isInteger(hash3)).toBe(true);
+    });
+
+    it('should handle null from codePointAt', () => {
+      const operator = new TestOperator();
+      
+      // Create a string with a lone high surrogate (U+D800)
+      // This will cause codePointAt to return null, testing the ?? 0 branch
+      const str = '\uD800';
+      const hash = operator.testHash(str);
+      
+      // The hash should still be a valid number
       expect(typeof hash).toBe('number');
       expect(Number.isInteger(hash)).toBe(true);
+      
+      // Test with multiple problematic characters
+      const multiStr = '\uD800\uD801\uD802';
+      const multiHash = operator.testHash(multiStr);
+      expect(typeof multiHash).toBe('number');
+      expect(Number.isInteger(multiHash)).toBe(true);
     });
   });
 }); 

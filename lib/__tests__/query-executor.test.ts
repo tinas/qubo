@@ -98,10 +98,14 @@ describe('QueryExecutor', () => {
       expect(result[0].id).toBe(1);
     });
 
-    it('should handle unknown logical operators', () => {
-      const executor = new QueryExecutor([{ name: 'John', age: 30 }]);
-      const result = executor.find({ '$unknownLogicalOp': [{ age: { $gt: 20 } }] });
-      expect(result).toHaveLength(0);
+    test('should handle unknown logical operators', () => {
+      const executor = new QueryExecutor([{ name: 'John' }]);
+      const query = {
+        '$unknown': [{ name: 'John' }]
+      };
+      // @ts-ignore - Testing invalid logical operator
+      const result = executor.evaluateLogicalOperatorForTesting('$unknown', [{ name: 'John' }], { name: 'John' });
+      expect(result).toBe(false);
     });
   });
 
@@ -217,6 +221,14 @@ describe('QueryExecutor', () => {
       const operators = new Map();
       (executor as any).operators = operators;
       const result = executor.find({ age: { '$someOperator': 30 } });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle missing equals operator', () => {
+      const executor = new QueryExecutor([{ name: 'John', age: 30 }]);
+      const operators = new Map();
+      (executor as any).operators = operators;
+      const result = executor.find({ name: 'John' });
       expect(result).toHaveLength(0);
     });
   });

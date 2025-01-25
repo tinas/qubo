@@ -110,7 +110,6 @@ export abstract class BaseOperator<T, C = unknown> {
     for (let index = 0; index < string_.length; index++) {
       const code = string_.codePointAt(index) ?? 0;
       hash = ((hash << 5) - hash) + code;
-      hash = Math.trunc(hash);
     }
     return hash;
   }

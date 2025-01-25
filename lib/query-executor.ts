@@ -125,6 +125,11 @@ export class QueryExecutor<T> implements IQueryExecutor<T> {
     }
   }
 
+  // Expose for testing
+  public evaluateLogicalOperatorForTesting(operator: LogicalOperator, conditions: Query<T>[], item: T): boolean {
+    return this.evaluateLogicalOperator(item, operator, conditions);
+  }
+
   /**
    * Evaluates a field condition against an item.
    * 
