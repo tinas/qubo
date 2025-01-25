@@ -21,4 +21,31 @@ describe('ArrayLengthOperator', () => {
     // @ts-expect-error
     expect(operator.evaluate(undefined, 0)).toBe(false);
   });
+
+  describe('caching', () => {
+    it('should generate different cache keys for different array lengths', () => {
+      const key1 = operator.getCacheKeyForTesting([1, 2, 3], 3);
+      const key2 = operator.getCacheKeyForTesting([1, 2], 3);
+      expect(key1).not.toBe(key2);
+    });
+
+    it('should generate same cache key for arrays with same length', () => {
+      const key1 = operator.getCacheKeyForTesting([1, 2, 3], 3);
+      const key2 = operator.getCacheKeyForTesting(['a', 'b', 'c'], 3);
+      expect(key1).toBe(key2);
+    });
+
+    it('should handle non-array values in cache key generation', () => {
+      // @ts-expect-error
+      const key1 = operator.getCacheKeyForTesting('not an array', 3);
+      // @ts-expect-error
+      const key2 = operator.getCacheKeyForTesting(null, 3);
+      // @ts-expect-error
+      const key3 = operator.getCacheKeyForTesting(undefined, 3);
+
+      expect(key1).toBe('not-array-3');
+      expect(key2).toBe('not-array-3');
+      expect(key3).toBe('not-array-3');
+    });
+  });
 }); 
