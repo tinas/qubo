@@ -39,6 +39,11 @@ describe('BaseOperator', () => {
       expect(operator.testGenerateCacheKey(true)).toBe('bool:true');
       expect(operator.testGenerateCacheKey(null)).toBe('null');
       expect(operator.testGenerateCacheKey(undefined)).toBe('undefined');
+      
+      // Test primitive wrapper objects
+      expect(operator.testGenerateCacheKey(new String('test'))).toBe('str:test');
+      expect(operator.testGenerateCacheKey(new Number(123))).toBe('num:123');
+      expect(operator.testGenerateCacheKey(new Boolean(true))).toBe('bool:true');
     });
 
     it('should generate consistent cache keys for objects using reference IDs', () => {
@@ -77,6 +82,39 @@ describe('BaseOperator', () => {
       
       expect(operator.testGenerateCacheKey(symbol)).toMatch(/^other:.+$/);
       expect(operator.testGenerateCacheKey(fn)).toMatch(/^other:.+$/);
+    });
+
+    it('should handle non-object values in object type check', () => {
+      const operator = new TestOperator();
+      
+      // Test with values that are not objects but might be handled by the object type check
+      const fn = () => {};
+      Object.setPrototypeOf(fn, null);
+      
+      const primitiveObj = Object(42); // Number object
+      const primitiveStr = Object('test'); // String object
+      
+      // These should be handled by the primitive type checks
+      expect(operator.testGenerateCacheKey(primitiveObj)).toMatch(/^num:42$/);
+      expect(operator.testGenerateCacheKey(primitiveStr)).toMatch(/^str:test$/);
+      expect(operator.testGenerateCacheKey(fn)).toMatch(/^other:.+$/);
+    });
+
+    it('should handle error cases in cache key generation', () => {
+      const operator = new TestOperator();
+      
+      // Create an object that throws when converted to string
+      const throwingObj = {
+        toString: () => { throw new Error('Test error'); },
+        valueOf: () => { throw new Error('Test error'); }
+      };
+      
+      // Should fallback to type-based key
+      expect(operator.testGenerateCacheKey(throwingObj)).toBe('other:object');
+      
+      // Test with Symbol
+      const sym = Symbol('test');
+      expect(operator.testGenerateCacheKey(sym)).toMatch(/^other:Symbol\(test\)$/);
     });
   });
 
@@ -175,6 +213,33 @@ describe('BaseOperator', () => {
     it('should handle long strings', () => {
       const longStr = 'a'.repeat(1000);
       const hash = operator.testHash(longStr);
+      expect(typeof hash).toBe('number');
+      expect(Number.isInteger(hash)).toBe(true);
+    });
+
+    it('should handle error cases in hash function', () => {
+      const operator = new TestOperator();
+      
+      // Test with empty string
+      expect(operator.testHash('')).toBe(0);
+      
+      // Test with string containing surrogate pairs
+      const surrogatePair = '👨‍👩‍👧‍👦';
+      const hash = operator.testHash(surrogatePair);
+      expect(typeof hash).toBe('number');
+      expect(Number.isInteger(hash)).toBe(true);
+
+      // Test with invalid code points
+      const invalidString = String.fromCharCode(0xD800); // Unpaired surrogate
+      const hashInvalid = operator.testHash(invalidString);
+      expect(typeof hashInvalid).toBe('number');
+      expect(Number.isInteger(hashInvalid)).toBe(true);
+    });
+
+    it('should handle invalid code points', () => {
+      const operator = new TestOperator();
+      const invalidString = String.fromCharCode(0xD800); // Unpaired surrogate
+      const hash = operator.testHash(invalidString);
       expect(typeof hash).toBe('number');
       expect(Number.isInteger(hash)).toBe(true);
     });

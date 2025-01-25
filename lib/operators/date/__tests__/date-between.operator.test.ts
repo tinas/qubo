@@ -237,5 +237,23 @@ describe('DateBetweenOperator', () => {
       const cacheKey = operator.getCacheKeyForTesting(date, [invalidDateString, new Date()]);
       expect(cacheKey).toBe('invalid');
     });
+
+    it('should handle mixed date string formats in cache key generation', () => {
+      const operator = new DateBetweenOperator();
+      const date = new Date('2024-01-25T12:00:00Z');
+      
+      // Test with one date having 'T' and one without
+      const key1 = operator.getCacheKeyForTesting(date, ['2024-01-24T12:00:00Z', '2024-01-26']);
+      const key2 = operator.getCacheKeyForTesting(date, ['2024-01-24', '2024-01-26T12:00:00Z']);
+      
+      // Both should use date-only format for cache key since at least one date is without time
+      expect(key1).toMatch(/^\d+-\d+-\d+$/);
+      expect(key2).toMatch(/^\d+-\d+-\d+$/);
+      
+      // Test with both dates having 'T'
+      const key3 = operator.getCacheKeyForTesting(date, ['2024-01-24T12:00:00Z', '2024-01-26T12:00:00Z']);
+      // Should use full timestamp format
+      expect(key3).toMatch(/^\d+-\d+-\d+$/);
+    });
   });
 }); 

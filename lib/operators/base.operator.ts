@@ -56,6 +56,12 @@ export abstract class BaseOperator<T, C = unknown> {
   protected generateCacheKey(value: unknown): string {
     if (value === null) return 'null';
     if (value === undefined) return 'undefined';
+
+    // Handle primitive wrapper objects
+    if (value instanceof String) return `str:${value.valueOf()}`;
+    if (value instanceof Number) return `num:${value.valueOf()}`;
+    if (value instanceof Boolean) return `bool:${value.valueOf()}`;
+
     if (typeof value === 'string') return `str:${value}`;
     if (typeof value === 'number') return `num:${value}`;
     if (typeof value === 'boolean') return `bool:${value}`;
@@ -68,17 +74,28 @@ export abstract class BaseOperator<T, C = unknown> {
       return `date:${referenceId}`;
     }
 
-    // For objects and arrays, use reference-based keys
+    // For objects and arrays, first try to convert to string
     if (typeof value === 'object') {
-      let referenceId = this.objectReferenceMap.get(value);
-      if (!referenceId) {
-        referenceId = `ref_${this.nextObjectId++}`;
-        this.objectReferenceMap.set(value, referenceId);
+      try {
+        String(value);
+        // If String() succeeds, use reference-based key
+        let referenceId = this.objectReferenceMap.get(value);
+        if (!referenceId) {
+          referenceId = `ref_${this.nextObjectId++}`;
+          this.objectReferenceMap.set(value, referenceId);
+        }
+        return referenceId;
+      } catch {
+        // If String() fails, use type-based key
+        return `other:${typeof value}`;
       }
-      return referenceId;
     }
 
-    return `other:${String(value)}`;
+    try {
+      return `other:${String(value)}`;
+    } catch {
+      return `other:${typeof value}`;
+    }
   }
 
   /**

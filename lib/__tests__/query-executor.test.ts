@@ -97,6 +97,12 @@ describe('QueryExecutor', () => {
       expect(result).toHaveLength(1);
       expect(result[0].id).toBe(1);
     });
+
+    it('should handle unknown logical operators', () => {
+      const executor = new QueryExecutor([{ name: 'John', age: 30 }]);
+      const result = executor.find({ '$unknownLogicalOp': [{ age: { $gt: 20 } }] });
+      expect(result).toHaveLength(0);
+    });
   });
 
   describe('findOne', () => {
@@ -187,6 +193,30 @@ describe('QueryExecutor', () => {
         age: { '$unknownOperator': 30 }
       });
 
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle undefined operators in field conditions', () => {
+      const executor = new QueryExecutor([
+        { name: 'John', age: 30 }
+      ]);
+
+      // Simulate a case where the operator is undefined
+      const operators = new Map();
+      (executor as any).operators = operators;
+
+      const result = executor.find({
+        age: { '$someOperator': 30 }
+      });
+
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle missing operators in field conditions', () => {
+      const executor = new QueryExecutor([{ name: 'John', age: 30 }]);
+      const operators = new Map();
+      (executor as any).operators = operators;
+      const result = executor.find({ age: { '$someOperator': 30 } });
       expect(result).toHaveLength(0);
     });
   });
