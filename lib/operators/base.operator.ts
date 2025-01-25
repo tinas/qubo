@@ -101,21 +101,21 @@ export abstract class BaseOperator<T, C = unknown> {
   /**
    * Enables caching of evaluation results.
    */
-  enableCache(): void {
+  public enableCache(): void {
     this.useCache = true;
   }
 
   /**
    * Disables caching of evaluation results.
    */
-  disableCache(): void {
+  public disableCache(): void {
     this.useCache = false;
   }
 
   /**
    * Clears all cached evaluation results.
    */
-  clearCache(): void {
+  public clearCache(): void {
     this.cache.clear();
   }
 

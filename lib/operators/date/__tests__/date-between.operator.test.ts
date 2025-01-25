@@ -114,6 +114,13 @@ describe('DateBetweenOperator', () => {
       expect(key1).not.toBe(key2);
     });
 
+    it('should handle errors when creating date objects', () => {
+      const date = new Date('2024-01-25T12:00:00Z');
+      const malformedDate = { toString: () => { throw new Error('Parse error'); } };
+      expect(operator.getCacheKey(date, [malformedDate as any, '2024-01-26'])).toBe('invalid');
+      expect(operator.getCacheKey(date, ['2024-01-24', malformedDate as any])).toBe('invalid');
+    });
+
     it('should generate same cache key for same dates', () => {
       const date = new Date('2024-01-25T12:00:00Z');
       const range: [string, string] = ['2024-01-24', '2024-01-27'];
@@ -198,6 +205,37 @@ describe('DateBetweenOperator', () => {
       } finally {
         global.Date = OriginalDate;
       }
+    });
+
+    it('should handle null target value in cache key generation', () => {
+      const operator = new DateBetweenOperator();
+      const date = new Date();
+      const cacheKey = operator.getCacheKeyForTesting(date, null);
+      expect(cacheKey).toBe('invalid');
+    });
+
+    it('should handle missing start or end date in target value', () => {
+      const operator = new DateBetweenOperator();
+      const date = new Date();
+      const cacheKey1 = operator.getCacheKeyForTesting(date, [null as any, new Date()]);
+      const cacheKey2 = operator.getCacheKeyForTesting(date, [new Date(), null as any]);
+      expect(cacheKey1).toBe('invalid');
+      expect(cacheKey2).toBe('invalid');
+    });
+
+    it('should handle invalid value date in cache key generation', () => {
+      const operator = new DateBetweenOperator();
+      const invalidDate = new Date('invalid');
+      const cacheKey = operator.getCacheKeyForTesting(invalidDate, [new Date(), new Date()]);
+      expect(cacheKey).toBe('invalid');
+    });
+
+    it('should handle invalid date strings that throw errors', () => {
+      const operator = new DateBetweenOperator();
+      const date = new Date();
+      const invalidDateString = '2024-99-99'; // This will cause Date constructor to throw
+      const cacheKey = operator.getCacheKeyForTesting(date, [invalidDateString, new Date()]);
+      expect(cacheKey).toBe('invalid');
     });
   });
 }); 

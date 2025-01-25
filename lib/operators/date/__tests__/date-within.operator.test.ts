@@ -89,5 +89,11 @@ describe('DateWithinOperator', () => {
       const key = operator.getCacheKeyForTesting(null as any, { days: 3 });
       expect(key).toBe('invalid');
     });
+
+    it('should handle undefined target value in cache key generation', () => {
+      const date = new Date();
+      const key = operator.getCacheKeyForTesting(date, undefined as any);
+      expect(key).toBe(`${date.getTime()}-invalid-${new Date().toDateString()}`);
+    });
   });
 }); 

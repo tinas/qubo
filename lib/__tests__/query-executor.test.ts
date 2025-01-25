@@ -75,6 +75,13 @@ describe('QueryExecutor', () => {
       expect(result[0].id).toBe(2);
     });
 
+    it('should handle invalid logical operators', () => {
+      const result = executor.find({
+        $invalid: [{ active: true }]
+      } as any);
+      expect(result).toHaveLength(0);
+    });
+
     it('should handle nested logical operators', () => {
       const result = executor.find({
         $and: [
@@ -168,6 +175,18 @@ describe('QueryExecutor', () => {
 
     it('should handle deeply nested paths that dont exist', () => {
       const result = executor.find({ 'nested.nonexistent.value': 10 });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle unknown operators in field conditions', () => {
+      const executor = new QueryExecutor([
+        { name: 'John', age: 30 }
+      ]);
+
+      const result = executor.find({
+        age: { '$unknownOperator': 30 }
+      });
+
       expect(result).toHaveLength(0);
     });
   });
