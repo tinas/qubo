@@ -1,7 +1,7 @@
 import { EqualOperator } from '../equal.operator';
 
 describe('EqualOperator', () => {
-  const operator = new (EqualOperator as any)();
+  const operator = new EqualOperator();
 
   it('should return true for equal values', () => {
     expect(operator.evaluate(1, 1)).toBe(true);

@@ -1,7 +1,7 @@
 import { ArrayLengthOperator } from '../array-length.operator';
 
 describe('ArrayLengthOperator', () => {
-  const operator = new (ArrayLengthOperator as any)();
+  const operator = new ArrayLengthOperator();
 
   it('should return true when array length matches target value', () => {
     expect(operator.evaluate([1, 2, 3], 3)).toBe(true);
@@ -14,8 +14,11 @@ describe('ArrayLengthOperator', () => {
   });
 
   it('should return false for non-array values', () => {
+    // @ts-expect-error
     expect(operator.evaluate('not an array', 3)).toBe(false);
+    // @ts-expect-error
     expect(operator.evaluate(null, 0)).toBe(false);
+    // @ts-expect-error
     expect(operator.evaluate(undefined, 0)).toBe(false);
   });
 }); 

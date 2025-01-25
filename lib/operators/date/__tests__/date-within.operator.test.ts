@@ -1,7 +1,7 @@
 import { DateWithinOperator } from '../date-within.operator';
 
 describe('DateWithinOperator', () => {
-  const operator = new (DateWithinOperator as any)();
+  const operator = new DateWithinOperator();
 
   it('should return true for dates within the specified days', () => {
     const now = new Date();
@@ -16,6 +16,7 @@ describe('DateWithinOperator', () => {
   });
 
   it('should return false for invalid dates', () => {
+    // @ts-expect-error
     expect(operator.evaluate('not a date', { days: 3 })).toBe(false);
   });
 }); 

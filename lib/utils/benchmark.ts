@@ -62,7 +62,7 @@ export class Benchmark {
 
 /**
  * Formats a time value in milliseconds to a human-readable string with appropriate units.
- * 
+ *
  * @param ms - Time in milliseconds
  * @returns Formatted time string with appropriate unit (ns, µs, or ms)
  */
@@ -71,7 +71,7 @@ function formatTime(ms: number): string {
     return `${(ms * 1_000_000).toFixed(2)}ns`;
   }
   if (ms < 1) {
-    return `${(ms * 1_000).toFixed(2)}µs`;
+    return `${(ms * 1000).toFixed(2)}µs`;
   }
   return `${ms.toFixed(3)}ms`;
 }
