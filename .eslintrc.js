@@ -1,10 +1,21 @@
+/** @type {import('eslint').Linter.Config} */
 module.exports = {
   parser: '@typescript-eslint/parser',
   extends: [
     'plugin:@typescript-eslint/recommended',
-    'plugin:unicorn/recommended'
+    'plugin:unicorn/recommended',
   ],
   plugins: ['@typescript-eslint', '@stylistic', 'unicorn'],
+  parserOptions: {
+    ecmaVersion: 2020,
+    sourceType: 'module',
+    project: './tsconfig.json',
+    tsconfigRootDir: __dirname,
+  },
+  env: {
+    node: true,
+    es6: true,
+  },
   rules: {
     '@stylistic/semi': ['error', 'always'],
     '@stylistic/quotes': ['error', 'single'],
@@ -26,13 +37,13 @@ module.exports = {
     '@stylistic/space-infix-ops': 'error',
     'unicorn/filename-case': ['error', {
       case: 'kebabCase',
-      ignore: ['^[A-Z][a-z]+\\..*']
+      ignore: ['^[A-Z][a-z]+\\..*'],
     }],
-    '@typescript-eslint/no-unused-vars': 'error'
+    '@typescript-eslint/no-unused-vars': 'error',
   },
   settings: {
     'import/resolver': {
-      typescript: {}
-    }
-  }
+      typescript: {},
+    },
+  },
 }; 
