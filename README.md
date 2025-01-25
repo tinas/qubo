@@ -2,6 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/qubo.svg)](https://www.npmjs.com/package/qubo)
 [![License](https://img.shields.io/npm/l/qubo.svg)](https://github.com/tinas/qubo/blob/main/LICENSE)
+[![codecov](https://codecov.io/gh/tinas/qubo/graph/badge.svg)](https://codecov.io/gh/tinas/qubo)
 
 MongoDB-style query builder for JavaScript/TypeScript objects with zero dependencies. Qubo allows you to write MongoDB-like queries to filter and evaluate objects in memory.
 
