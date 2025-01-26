@@ -24,6 +24,36 @@ function validateOperator(operator: Operator) {
 }
 
 /**
+ * Resolves a path with dot notation and array indices to a value
+ * @param obj The object to traverse
+ * @param path The path with dot notation (e.g. 'a.b[0].c')
+ * @returns The value at the path or undefined if not found
+ */
+function resolvePath(obj: unknown, path: string): unknown {
+  const parts = path.match(/[^\.\[\]]+|\[\d+\]/g) || [];
+  let current: unknown = obj;
+
+  for (const part of parts) {
+    if (!current || typeof current !== 'object') {
+      return undefined;
+    }
+
+    if (part.startsWith('[') && part.endsWith(']')) {
+      const index = parseInt(part.slice(1, -1));
+      if (Array.isArray(current)) {
+        current = current[index];
+      } else {
+        return undefined;
+      }
+    } else {
+      current = (current as Record<string, unknown>)[part];
+    }
+  }
+
+  return current;
+}
+
+/**
  * Evaluates a value against a query using registered operators
  * @param value The value to evaluate
  * @param query The query to evaluate against
@@ -53,7 +83,11 @@ function evaluateValue(value: unknown, query: unknown, operators: Map<string, Op
         return operatorFn.fn(value, subQuery);
       }
       
-      const subValue = (value as Record<string, unknown>)?.[key];
+      // Handle dot notation and array indices
+      const subValue = key.includes('.') || key.includes('[') 
+        ? resolvePath(value, key)
+        : (value as Record<string, unknown>)?.[key];
+
       return evaluateValue(subValue, subQuery, operators);
     });
   }
@@ -83,7 +117,11 @@ function evaluateDocument<T>(doc: T, query: Query, operators: Map<string, Operat
       return operatorFn.fn(doc, value);
     }
 
-    const docValue = (doc as Record<string, unknown>)?.[key];
+    // Handle dot notation and array indices
+    const docValue = key.includes('.') || key.includes('[')
+      ? resolvePath(doc, key)
+      : (doc as Record<string, unknown>)?.[key];
+
     return evaluateValue(docValue, value, operators);
   });
 }
