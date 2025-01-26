@@ -1,51 +1,103 @@
 /**
- * MongoDB-like operators
+ * Main interface for Qubo query operations
+ * @template T The type of documents in the collection
  */
-export type ComparisonOperator = '$eq' | '$gt' | '$gte' | '$in' | '$lt' | '$lte' | '$ne' | '$nin';
-export type LogicalOperator = '$and' | '$not' | '$nor' | '$or';
-export type ArrayOperator = '$all' | '$elemMatch' | '$size';
-export type ElementOperator = '$exists' | '$type';
+export type Qubo<T> = {
+  /**
+   * Finds all documents that match the given query
+   * @param query The query to match documents against
+   * @returns An array of matching documents
+   */
+  find(query: Query): T[];
 
-export type Operator = ComparisonOperator | LogicalOperator | ArrayOperator | ElementOperator;
+  /**
+   * Finds the first document that matches the given query
+   * @param query The query to match documents against
+   * @returns The first matching document or null if no match is found
+   */
+  findOne(query: Query): T | null;
 
-/**
- * Query types
- */
-export type QueryValue = any;
-export type QueryCondition = Record<string, any>;
-
-export type Query<T> = {
-  [P in keyof T]?: T[P] | QueryCondition;
-} & {
-  [key: string]: any;
-};
-
-/**
- * Custom operator types
- */
-export type OperatorFunction = (value: any, condition: any) => boolean;
-
-export type CustomOperators = {
-  [key: string]: OperatorFunction;
-};
-
-/**
- * Store types
- */
-export interface QuboStore<T> {
-  data: T[];
-  find: (query: Query<T>) => T[];
-  findOne: (query: Query<T>) => T | null;
-  evaluate: (doc: T, query: Query<T>) => boolean;
-}
-
-export interface QuboOptions {
-  operators?: Record<string, OperatorFunction>;
+  /**
+   * Checks if any document matches the given query
+   * @param query The query to match documents against
+   * @returns True if at least one document matches, false otherwise
+   */
+  evaluate(query: Query): boolean;
 }
 
 /**
- * Result types
+ * Configuration options for creating a Qubo instance
  */
-export type FindResult<T> = T[];
-export type FindOneResult<T> = T | null;
-export type EvaluateResult = boolean; 
+export type QuboOptions = {
+  /**
+   * Additional custom operators to extend Qubo's functionality
+   * Each operator must have a name starting with '$'
+   */
+  operators?: Operator[];
+};
+
+/**
+ * Represents a query operator that can be used in Qubo queries
+ */
+export type Operator = {
+  /**
+   * The name of the operator, must start with '$'
+   */
+  name: string;
+
+  /**
+   * The function that implements the operator's logic
+   * @param args Arguments passed to the operator
+   * @returns A boolean indicating if the condition is met
+   */
+  fn: (...args: any[]) => boolean;
+};
+
+/**
+ * Built-in comparison operators for querying values
+ */
+export type ComparisonOperator = '$eq' | '$neq' | '$gt' | '$gte' | '$lt' | '$lte' | '$regex';
+
+/**
+ * Built-in logical operators for combining conditions
+ */
+export type LogicalOperator = '$and' | '$or' | '$not' | '$nor';
+
+/**
+ * Built-in array operators for querying array fields
+ */
+export type ArrayOperator = '$elemMatch' | '$in' | '$nin';
+
+/**
+ * Union of all built-in operator types
+ */
+export type OperatorType = ComparisonOperator | LogicalOperator | ArrayOperator;
+
+/**
+ * Query structure for comparison operations
+ */
+export type ComparisonQuery = {
+  [K in ComparisonOperator]?: unknown;
+};
+
+/**
+ * Query structure for logical operations
+ */
+export type LogicalQuery = {
+  [K in LogicalOperator]?: Query | Query[];
+};
+
+/**
+ * Query structure for array operations
+ */
+export type ArrayQuery = {
+  [K in ArrayOperator]?: Query;
+};
+
+/**
+ * The main query type that can be used to find documents
+ * Supports nested queries and various operator types
+ */
+export type Query = {
+  [key: string]: unknown | ComparisonQuery | LogicalQuery | ArrayQuery | Query;
+};
