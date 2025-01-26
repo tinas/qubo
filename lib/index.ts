@@ -3,7 +3,7 @@ export type {
   Qubo,
   QuboOptions,
   Query,
-  Operator,
+  OperatorFunction,
   ComparisonOperator,
   LogicalOperator,
   ArrayOperator,
@@ -11,5 +11,4 @@ export type {
   ComparisonQuery,
   LogicalQuery,
   ArrayQuery,
-  CustomOperator,
 } from './types';

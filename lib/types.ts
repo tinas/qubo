@@ -23,6 +23,13 @@ export type Qubo<T> = {
    * @returns True if at least one document matches, false otherwise
    */
   evaluate(query: Query): boolean;
+
+  /**
+   * Registers a new custom operator
+   * @param name The name of the operator (must start with $)
+   * @param fn The operator function
+   */
+  registerOperator(name: string, fn: OperatorFunction): void;
 }
 
 /**
@@ -33,54 +40,22 @@ export type QuboOptions = {
    * Additional custom operators to extend Qubo's functionality
    * Each operator must have a name starting with '$'
    */
-  operators?: CustomOperator[];
+  operators?: Record<string, OperatorFunction>;
 };
 
 /**
- * Custom operator definition for extending Qubo's functionality
+ * The function type for all operators
  */
-export type CustomOperator = {
-  /**
-   * The name of the operator, must start with '$'
-   */
-  name: string;
-
-  /**
-   * The function that implements the operator's logic
-   * @param value The value to compare
-   * @param operand The operand to compare against
-   * @returns A boolean indicating if the condition is met
-   */
-  fn: (value: unknown, operand: unknown) => boolean;
-};
-
-/**
- * Internal operator type used by Qubo
- */
-export type Operator = {
-  /**
-   * The name of the operator, must start with '$'
-   */
-  name: string;
-
-  /**
-   * The function that implements the operator's logic
-   * @param value The value to compare
-   * @param operand The operand to compare against
-   * @param evaluateFunction The function to evaluate nested queries
-   * @returns A boolean indicating if the condition is met
-   */
-  fn: (
-    value: unknown,
-    operand: unknown,
-    evaluateFunction: (value: unknown, query: Record<string, unknown>) => boolean
-  ) => boolean;
-};
+export type OperatorFunction = (
+  value: unknown,
+  operand: unknown,
+  evaluateFunction?: (value: unknown, query: Record<string, unknown>) => boolean,
+) => boolean;
 
 /**
  * Built-in comparison operators for querying values
  */
-export type ComparisonOperator = '$eq' | '$neq' | '$gt' | '$gte' | '$lt' | '$lte' | '$regex';
+export type ComparisonOperator = '$eq' | '$ne' | '$gt' | '$gte' | '$lt' | '$lte' | '$regex';
 
 /**
  * Built-in logical operators for combining conditions
@@ -90,7 +65,7 @@ export type LogicalOperator = '$and' | '$or' | '$not' | '$nor';
 /**
  * Built-in array operators for querying array fields
  */
-export type ArrayOperator = '$elementMatch' | '$in' | '$nin';
+export type ArrayOperator = '$in' | '$nin' | '$elemMatch';
 
 /**
  * Union of all built-in operator types
@@ -108,18 +83,18 @@ export type ComparisonQuery = {
  * Query structure for logical operations
  */
 export type LogicalQuery = {
-  [K in LogicalOperator]?: Query | Query[];
+  [K in LogicalOperator]?: Query[];
 };
 
 /**
  * Query structure for array operations
  */
 export type ArrayQuery = {
-  [K in ArrayOperator]?: Query;
+  [K in ArrayOperator]?: unknown;
 };
 
 /**
  * The main query type that can be used to find documents
  * Supports nested queries and various operator types
  */
-export type Query = Record<string, unknown>;
+export type Query = Record<string, unknown> | ComparisonQuery | LogicalQuery | ArrayQuery;

@@ -1,28 +1,17 @@
-import { type Qubo, type QuboOptions, type Query, type Operator, type CustomOperator } from './types';
+import { type Qubo, type QuboOptions, type Query, type OperatorFunction } from './types';
 import * as comparisonOperators from './operators/comparison';
 import * as logicalOperators from './operators/logical';
 import * as arrayOperators from './operators/array';
 import { QuboError } from './errors';
-import { evaluateWithOperator } from './utils';
-
-const defaultOperators: Operator[] = [
-  ...Object.values(comparisonOperators),
-  ...Object.values(logicalOperators),
-  ...Object.values(arrayOperators),
-];
 
 /**
- * Validates an operator's structure and naming convention
- * @param operator The operator to validate
- * @throws {QuboError} If the operator is invalid
+ * Validates an operator's name
+ * @param name The operator name to validate
+ * @throws {QuboError} If the operator name is invalid
  */
-function validateOperator(operator: Operator | CustomOperator) {
-  if (!operator.name.startsWith('$')) {
-    throw new QuboError(`Invalid operator name: ${operator.name}. Operator names must start with '$'`);
-  }
-
-  if (typeof operator.fn !== 'function') {
-    throw new QuboError(`Invalid operator function for ${operator.name}. Operator must have a valid function`);
+function validateOperatorName(name: string) {
+  if (!name.startsWith('$')) {
+    throw new QuboError(`Invalid operator name: ${name}. Operator names must start with '$'`);
   }
 }
 
@@ -57,74 +46,6 @@ function resolvePath(obj: unknown, path: string): unknown {
 }
 
 /**
- * Evaluates a value against a query using registered operators
- * @param value The value to evaluate
- * @param query The query to evaluate against
- * @param operators Map of available operators
- * @returns True if the value matches the query, false otherwise
- * @throws {QuboError} If an unknown operator is used
- */
-function evaluateValue(value: unknown, query: unknown, operators: Map<string, Operator | CustomOperator>): boolean {
-  if (typeof query === 'object' && query !== null) {
-    const entries = Object.entries(query as Record<string, unknown>);
-    
-    return entries.every(([key, subQuery]) => {
-      if (key.startsWith('$')) {
-        const operatorQuery = { [key]: subQuery };
-        return evaluateWithOperator(
-          value,
-          operatorQuery,
-          (v: unknown, q: Record<string, unknown>) => evaluateValue(v, q, operators),
-          operators
-        );
-      }
-      
-      // Handle dot notation and array indices
-      const subValue = key.includes('.') || key.includes('[') 
-        ? resolvePath(value, key)
-        : (value as Record<string, unknown>)?.[key];
-
-      return evaluateValue(subValue, subQuery, operators);
-    });
-  }
-
-  return value === query;
-}
-
-/**
- * Evaluates a document against a query using registered operators
- * @param doc The document to evaluate
- * @param query The query to evaluate against
- * @param operators Map of available operators
- * @returns True if the document matches the query, false otherwise
- * @throws {QuboError} If an unknown operator is used
- */
-function evaluateDocument<T>(doc: T, query: Query, operators: Map<string, Operator | CustomOperator>): boolean {
-  return Object.entries(query).every(([key, value]) => {
-    if (key === '$elemMatch' && Array.isArray(doc)) {
-      return doc.some(item => evaluateDocument(item, value as Query, operators));
-    }
-
-    if (key.startsWith('$')) {
-      const operatorQuery = { [key]: value };
-      return evaluateWithOperator(
-        doc,
-        operatorQuery,
-        (v: unknown, q: Record<string, unknown>) => evaluateDocument(v as T, q as Query, operators),
-        operators
-      );
-    }
-
-    // Handle dot notation and array indices
-    const docValue = key.includes('.') || key.includes('[')
-      ? resolvePath(doc, key)
-      : (doc as Record<string, unknown>)?.[key];
-
-    return evaluateValue(docValue, value, operators);
-  });
-}
-
-/**
  * Creates a new Qubo instance for querying an array of documents
  * @template T The type of documents in the collection
  * @param data The array of documents to query
@@ -148,44 +69,101 @@ export function createQubo<T>(data: T[], options: QuboOptions = {}): Qubo<T> {
     throw new QuboError('Data must be an array');
   }
 
-  const operators = new Map<string, Operator>();
-  const allOperators = [...defaultOperators, ...(options.operators || [])];
-  
-  allOperators.forEach(operator => {
-    try {
-      validateOperator(operator);
-      operators.set(operator.name, operator);
-    } catch (error: unknown) {
-      if (error instanceof QuboError) {
-        throw error;
-      }
-      if (error instanceof Error) {
-        throw new QuboError(`Failed to register operator ${operator.name}: ${error.message}`);
-      }
-      throw new QuboError(`Failed to register operator ${operator.name}: Unknown error`);
-    }
+  const operators = new Map<string, OperatorFunction>();
+
+  // Register built-in operators
+  const builtInOperators = {
+    ...comparisonOperators,
+    ...logicalOperators,
+    ...arrayOperators,
+  };
+
+  Object.entries(builtInOperators).forEach(([name, fn]) => {
+    validateOperatorName(name);
+    operators.set(name, fn);
   });
+
+  // Register custom operators
+  if (options.operators) {
+    Object.entries(options.operators).forEach(([name, fn]) => {
+      validateOperatorName(name);
+      operators.set(name, fn);
+    });
+  }
+
+  function evaluateValue(value: unknown, query: unknown): boolean {
+    if (typeof query === 'object' && query !== null) {
+      const entries = Object.entries(query as Record<string, unknown>);
+      
+      return entries.every(([key, subQuery]) => {
+        if (key.startsWith('$')) {
+          const operatorFn = operators.get(key);
+          if (!operatorFn) {
+            throw new QuboError(`Unknown operator: ${key}`);
+          }
+          return operatorFn(value, subQuery, (v, q) => evaluateValue(v, q));
+        }
+        
+        // Handle dot notation and array indices
+        const subValue = key.includes('.') || key.includes('[') 
+          ? resolvePath(value, key)
+          : (value as Record<string, unknown>)?.[key];
+
+        return evaluateValue(subValue, subQuery);
+      });
+    }
+
+    return value === query;
+  }
+
+  function evaluateDocument(doc: T, query: Query): boolean {
+    return Object.entries(query).every(([key, value]) => {
+      if (key === '$elemMatch' && Array.isArray(doc)) {
+        return doc.some(item => evaluateDocument(item, value as Query));
+      }
+
+      if (key.startsWith('$')) {
+        const operatorFn = operators.get(key);
+        if (!operatorFn) {
+          throw new QuboError(`Unknown operator: ${key}`);
+        }
+        return operatorFn(doc, value, (v, q) => evaluateDocument(v as T, q as Query));
+      }
+
+      // Handle dot notation and array indices
+      const docValue = key.includes('.') || key.includes('[')
+        ? resolvePath(doc, key)
+        : (doc as Record<string, unknown>)?.[key];
+
+      return evaluateValue(docValue, value);
+    });
+  }
 
   return {
     find: (query: Query) => {
       if (!query || typeof query !== 'object') {
         throw new QuboError('Query must be an object');
       }
-      return data.filter(doc => evaluateDocument(doc, query, operators));
+      return data.filter(doc => evaluateDocument(doc, query));
     },
     
     findOne: (query: Query) => {
       if (!query || typeof query !== 'object') {
         throw new QuboError('Query must be an object');
       }
-      return data.find(doc => evaluateDocument(doc, query, operators)) || null;
+      return data.find(doc => evaluateDocument(doc, query)) || null;
     },
     
     evaluate: (query: Query) => {
       if (!query || typeof query !== 'object') {
         throw new QuboError('Query must be an object');
       }
-      return data.some(doc => evaluateDocument(doc, query, operators));
+      return data.some(doc => evaluateDocument(doc, query));
+    },
+
+    registerOperator: (name: string, fn: OperatorFunction) => {
+      validateOperatorName(name);
+      operators.set(name, fn);
     },
   };
 }
