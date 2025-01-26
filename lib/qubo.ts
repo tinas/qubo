@@ -2,17 +2,15 @@ import { type Qubo, type QuboOptions, type Query, type OperatorFunction } from '
 import * as comparisonOperators from './operators/comparison';
 import * as logicalOperators from './operators/logical';
 import * as arrayOperators from './operators/array';
-import { QuboError } from './errors';
+import { createError, createTypeError } from './errors';
 
 /**
- * Validates an operator's name
- * @param name The operator name to validate
- * @throws {QuboError} If the operator name is invalid
+ * Checks if the given string is a valid operator name
+ * @param name The operator name to check
+ * @returns True if the name is a valid operator name, false otherwise
  */
-function validateOperatorName(name: string) {
-  if (!name.startsWith('$')) {
-    throw new QuboError(`Invalid operator name: ${name}. Operator names must start with '$'`);
-  }
+function isValidOperatorName(name: string): boolean {
+  return name.startsWith('$');
 }
 
 /**
@@ -51,7 +49,7 @@ function resolvePath(obj: unknown, path: string): unknown {
  * @param data The array of documents to query
  * @param options Configuration options for the Qubo instance
  * @returns A Qubo instance with query capabilities
- * @throws {QuboError} If the data is not an array or if there are invalid operators
+ * @throws {TypeError} If the data is not an array or if there are invalid operators
  * 
  * @example
  * ```typescript
@@ -66,7 +64,7 @@ function resolvePath(obj: unknown, path: string): unknown {
  */
 export function createQubo<T>(data: T[], options: QuboOptions = {}): Qubo<T> {
   if (!Array.isArray(data)) {
-    throw new QuboError('Data must be an array');
+    throw createTypeError('Data must be an array');
   }
 
   const operators = new Map<string, OperatorFunction>();
@@ -79,14 +77,18 @@ export function createQubo<T>(data: T[], options: QuboOptions = {}): Qubo<T> {
   };
 
   Object.entries(builtInOperators).forEach(([name, fn]) => {
-    validateOperatorName(name);
+    if (!isValidOperatorName(name)) {
+      throw createTypeError(`Invalid operator name: ${name}. Operator names must start with '$'`);
+    }
     operators.set(name, fn);
   });
 
   // Register custom operators
   if (options.operators) {
     Object.entries(options.operators).forEach(([name, fn]) => {
-      validateOperatorName(name);
+      if (!isValidOperatorName(name)) {
+        throw createTypeError(`Invalid operator name: ${name}. Operator names must start with '$'`);
+      }
       operators.set(name, fn);
     });
   }
@@ -99,7 +101,7 @@ export function createQubo<T>(data: T[], options: QuboOptions = {}): Qubo<T> {
         if (key.startsWith('$')) {
           const operatorFn = operators.get(key);
           if (!operatorFn) {
-            throw new QuboError(`Unknown operator: ${key}`);
+            throw createError(`Unknown operator: ${key}`);
           }
           return operatorFn(value, subQuery, (v, q) => evaluateValue(v, q));
         }
@@ -125,7 +127,7 @@ export function createQubo<T>(data: T[], options: QuboOptions = {}): Qubo<T> {
       if (key.startsWith('$')) {
         const operatorFn = operators.get(key);
         if (!operatorFn) {
-          throw new QuboError(`Unknown operator: ${key}`);
+          throw createError(`Unknown operator: ${key}`);
         }
         return operatorFn(doc, value, (v, q) => evaluateDocument(v as T, q as Query));
       }
@@ -142,27 +144,29 @@ export function createQubo<T>(data: T[], options: QuboOptions = {}): Qubo<T> {
   return {
     find: (query: Query) => {
       if (!query || typeof query !== 'object') {
-        throw new QuboError('Query must be an object');
+        throw createTypeError('Query must be an object');
       }
       return data.filter(doc => evaluateDocument(doc, query));
     },
     
     findOne: (query: Query) => {
       if (!query || typeof query !== 'object') {
-        throw new QuboError('Query must be an object');
+        throw createTypeError('Query must be an object');
       }
       return data.find(doc => evaluateDocument(doc, query)) || null;
     },
     
     evaluate: (query: Query) => {
       if (!query || typeof query !== 'object') {
-        throw new QuboError('Query must be an object');
+        throw createTypeError('Query must be an object');
       }
       return data.some(doc => evaluateDocument(doc, query));
     },
 
     registerOperator: (name: string, fn: OperatorFunction) => {
-      validateOperatorName(name);
+      if (!isValidOperatorName(name)) {
+        throw createTypeError(`Invalid operator name: ${name}. Operator names must start with '$'`);
+      }
       operators.set(name, fn);
     },
   };

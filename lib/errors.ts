@@ -1,10 +1,15 @@
 /**
- * Custom error class for Qubo-specific errors
- * All error messages are prefixed with '[qubo]' for easier identification
+ * Creates a Qubo error with a custom message
+ * @param message The error message
  */
-export class QuboError extends Error {
-  constructor(message: string) {
-    super(`[qubo] ${message}`);
-    this.name = 'QuboError';
-  }
+export function createError(message: string): Error {
+  return new Error(`[qubo] ${message}`);
+}
+
+/**
+ * Creates a Qubo type error with a custom message
+ * @param message The error message
+ */
+export function createTypeError(message: string): TypeError {
+  return new TypeError(`[qubo] ${message}`);
 } 

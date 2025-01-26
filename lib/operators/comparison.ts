@@ -1,5 +1,5 @@
 import { type OperatorFunction } from '../types';
-import { QuboError } from '../errors';
+import { createTypeError } from '../errors';
 
 /**
  * Matches values that are equal to a specified value
@@ -51,20 +51,6 @@ export const $lte: OperatorFunction = (value: unknown, operand: unknown) => {
   return (value as number | string | Date) <= (operand as number | string | Date);
 };
 
-export const $in: OperatorFunction = (value: unknown, operand: unknown) => {
-  if (!Array.isArray(operand)) {
-    throw new QuboError('$in requires an array as its argument');
-  }
-  return operand.includes(value);
-};
-
-export const $nin: OperatorFunction = (value: unknown, operand: unknown) => {
-  if (!Array.isArray(operand)) {
-    throw new QuboError('$nin requires an array as its argument');
-  }
-  return !operand.includes(value);
-};
-
 /**
  * Matches values that satisfy a regular expression pattern
  */
@@ -78,7 +64,7 @@ export const $regex: OperatorFunction = (value: unknown, operand: unknown) => {
   }
 
   if (typeof operand !== 'string') {
-    throw new Error('$regex requires a string or RegExp as its argument');
+    throw createTypeError('$regex requires a string or RegExp as its argument');
   }
 
   return new RegExp(operand).test(value);
