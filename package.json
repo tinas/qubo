@@ -3,13 +3,17 @@
   "version": "0.1.0",
   "description": "MongoDB-like query builder for JavaScript/TypeScript objects with zero dependencies",
   "main": "dist/index.js",
-  "module": "dist/index.esm.js",
+  "module": "dist/esm/index.js",
   "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "require": "./dist/index.js",
+      "import": "./dist/esm/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "files": [
-    "dist/*.js",
-    "dist/*.d.ts",
-    "dist/operators/*.js",
-    "dist/operators/*.d.ts",
+    "dist",
     "README.md",
     "LICENSE"
   ],
