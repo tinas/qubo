@@ -1,4 +1,4 @@
-import { createQubo, type Query, type Operator } from '../lib';
+import { createQubo, type Query, type CustomOperator } from '../lib';
 
 // Sample data
 const products = [
@@ -38,22 +38,23 @@ const products = [
 ];
 
 // Custom operator: $avg - checks if average of array values meets a condition
-const $avg: Operator = {
+const $avg: CustomOperator = {
   name: '$avg',
-  fn: (value: unknown, operand: unknown, evaluateFn: (value: unknown, query: unknown) => boolean): boolean => {
+  fn: (value: unknown, operand: unknown) => {
     if (!Array.isArray(value) || typeof operand !== 'object' || operand === null) {
       return false;
     }
 
     const avg = value.reduce((sum, val) => sum + (typeof val === 'number' ? val : 0), 0) / value.length;
-    return evaluateFn(avg, operand);
+    const condition = operand as { $gt?: number };
+    return typeof condition.$gt === 'number' && avg > condition.$gt;
   }
 };
 
 // Custom operator: $dateAfter - checks if a date string is after the given date
-const $dateAfter: Operator = {
+const $dateAfter: CustomOperator = {
   name: '$dateAfter',
-  fn: (value: unknown, operand: unknown): boolean => {
+  fn: (value: unknown, operand: unknown) => {
     if (typeof value !== 'string' || typeof operand !== 'string') {
       return false;
     }
@@ -82,7 +83,7 @@ console.log('Products released after Jan 2023:', qubo.find(query2));
 // Combine custom operators with built-in operators
 const query3: Query = {
   $and: [
-    { ratings: { $avg: { $gte: 4.5 } } },
+    { ratings: { $avg: { $gt: 4.5 } } },
     { price: { $lt: 1000 } }
   ]
 };
@@ -90,7 +91,7 @@ console.log('Affordable products with high ratings:', qubo.find(query3));
 
 // This will throw an error because operator name doesn't start with $
 try {
-  const invalidOperator: Operator = {
+  const invalidOperator: CustomOperator = {
     name: 'invalid',
     fn: () => true
   };

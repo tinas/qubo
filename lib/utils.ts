@@ -1,30 +1,48 @@
-import { Operator } from './types';
+import { type Operator, type CustomOperator } from './types';
 import { QuboError } from './errors';
 
 /**
- * Evaluates a value using an operator
- * @param value The value to evaluate
- * @param operator The operator name
- * @param operand The operand to evaluate against
- * @param operators Map of available operators
- * @param evaluateFn Function to evaluate nested queries
- * @returns The result of the evaluation
+ * Gets an operator function that can handle both built-in and custom operators
  */
-export function evaluateWithOperator(
-  value: unknown,
-  operator: string,
-  operand: unknown,
-  operators: Map<string, Operator>,
-  evaluateFn: (value: unknown, query: unknown) => boolean
-): boolean {
-  const operatorFn = getOperator(operators, operator);
-  return operatorFn.fn(value, operand, evaluateFn);
-}
-
-function getOperator(operators: Map<string, Operator>, operatorName: string): Operator {
+export function getOperatorFunction(
+  operators: Map<string, Operator | CustomOperator>,
+  operatorName: string
+): (value: unknown, operand: unknown, evaluateFunction?: (value: unknown, query: Record<string, unknown>) => boolean) => boolean {
   const operator = operators.get(operatorName);
   if (!operator) {
     throw new QuboError(`Unknown operator: ${operatorName}`);
   }
-  return operator;
+
+  // Check if it's a built-in operator
+  if ('evaluateFunction' in (operator as Operator).fn) {
+    return (value, operand, evaluateFunction) => {
+      if (!evaluateFunction) {
+        throw new QuboError('Evaluate function is required for built-in operators');
+      }
+      return (operator as Operator).fn(value, operand, evaluateFunction);
+    };
+  }
+
+  // It's a custom operator
+  return (value, operand) => (operator as CustomOperator).fn(value, operand);
+}
+
+/**
+ * Evaluates a value using an operator
+ * @param value The value to evaluate
+ * @param query The query object containing the operator
+ * @param evaluateFunction Function to evaluate nested queries
+ * @param operators Map of available operators
+ * @returns The result of the evaluation
+ */
+export function evaluateWithOperator(
+  value: unknown,
+  query: Record<string, unknown>,
+  evaluateFunction: (value: unknown, query: Record<string, unknown>) => boolean,
+  operators: Map<string, Operator | CustomOperator>
+): boolean {
+  const operator = Object.keys(query)[0];
+  const operand = query[operator];
+  const operatorFn = getOperatorFunction(operators, operator);
+  return operatorFn(value, operand, evaluateFunction);
 } 

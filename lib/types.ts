@@ -33,11 +33,29 @@ export type QuboOptions = {
    * Additional custom operators to extend Qubo's functionality
    * Each operator must have a name starting with '$'
    */
-  operators?: Operator[];
+  operators?: CustomOperator[];
 };
 
 /**
- * Represents a query operator that can be used in Qubo queries
+ * Custom operator definition for extending Qubo's functionality
+ */
+export type CustomOperator = {
+  /**
+   * The name of the operator, must start with '$'
+   */
+  name: string;
+
+  /**
+   * The function that implements the operator's logic
+   * @param value The value to compare
+   * @param operand The operand to compare against
+   * @returns A boolean indicating if the condition is met
+   */
+  fn: (value: unknown, operand: unknown) => boolean;
+};
+
+/**
+ * Internal operator type used by Qubo
  */
 export type Operator = {
   /**
@@ -49,13 +67,13 @@ export type Operator = {
    * The function that implements the operator's logic
    * @param value The value to compare
    * @param operand The operand to compare against
-   * @param evaluateFn The function to evaluate the condition
+   * @param evaluateFunction The function to evaluate nested queries
    * @returns A boolean indicating if the condition is met
    */
   fn: (
     value: unknown,
     operand: unknown,
-    evaluateFn: (value: unknown, query: unknown) => boolean
+    evaluateFunction: (value: unknown, query: Record<string, unknown>) => boolean
   ) => boolean;
 };
 
@@ -72,7 +90,7 @@ export type LogicalOperator = '$and' | '$or' | '$not' | '$nor';
 /**
  * Built-in array operators for querying array fields
  */
-export type ArrayOperator = '$elemMatch' | '$in' | '$nin';
+export type ArrayOperator = '$elementMatch' | '$in' | '$nin';
 
 /**
  * Union of all built-in operator types

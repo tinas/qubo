@@ -1,4 +1,4 @@
-import { Qubo, QuboOptions, Query, Operator } from './types';
+import { type Qubo, type QuboOptions, type Query, type Operator, type CustomOperator } from './types';
 import * as comparisonOperators from './operators/comparison';
 import * as logicalOperators from './operators/logical';
 import * as arrayOperators from './operators/array';
@@ -16,7 +16,7 @@ const defaultOperators: Operator[] = [
  * @param operator The operator to validate
  * @throws {QuboError} If the operator is invalid
  */
-function validateOperator(operator: Operator) {
+function validateOperator(operator: Operator | CustomOperator) {
   if (!operator.name.startsWith('$')) {
     throw new QuboError(`Invalid operator name: ${operator.name}. Operator names must start with '$'`);
   }
@@ -64,18 +64,18 @@ function resolvePath(obj: unknown, path: string): unknown {
  * @returns True if the value matches the query, false otherwise
  * @throws {QuboError} If an unknown operator is used
  */
-function evaluateValue(value: unknown, query: unknown, operators: Map<string, Operator>): boolean {
+function evaluateValue(value: unknown, query: unknown, operators: Map<string, Operator | CustomOperator>): boolean {
   if (typeof query === 'object' && query !== null) {
     const entries = Object.entries(query as Record<string, unknown>);
     
     return entries.every(([key, subQuery]) => {
       if (key.startsWith('$')) {
+        const operatorQuery = { [key]: subQuery };
         return evaluateWithOperator(
           value,
-          key,
-          subQuery,
-          operators,
-          (v, q) => evaluateValue(v, q, operators)
+          operatorQuery,
+          (v: unknown, q: Record<string, unknown>) => evaluateValue(v, q, operators),
+          operators
         );
       }
       
@@ -99,19 +99,19 @@ function evaluateValue(value: unknown, query: unknown, operators: Map<string, Op
  * @returns True if the document matches the query, false otherwise
  * @throws {QuboError} If an unknown operator is used
  */
-function evaluateDocument<T>(doc: T, query: Query, operators: Map<string, Operator>): boolean {
+function evaluateDocument<T>(doc: T, query: Query, operators: Map<string, Operator | CustomOperator>): boolean {
   return Object.entries(query).every(([key, value]) => {
     if (key === '$elemMatch' && Array.isArray(doc)) {
       return doc.some(item => evaluateDocument(item, value as Query, operators));
     }
 
     if (key.startsWith('$')) {
+      const operatorQuery = { [key]: value };
       return evaluateWithOperator(
         doc,
-        key,
-        value,
-        operators,
-        (v, q) => evaluateDocument(v as T, q as Query, operators)
+        operatorQuery,
+        (v: unknown, q: Record<string, unknown>) => evaluateDocument(v as T, q as Query, operators),
+        operators
       );
     }
 

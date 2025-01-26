@@ -1,60 +1,88 @@
-import { Operator } from '../types';
-import { QuboError } from '../errors';
+import { type Operator } from '../types';
 
+/**
+ * Matches all the specified conditions
+ */
 export const $and: Operator = {
   name: '$and',
-  fn: (value: unknown, conditions: unknown, evaluateFn: (value: unknown, query: unknown) => boolean): boolean => {
-    if (!Array.isArray(conditions)) {
-      throw new QuboError('$and requires an array of conditions');
+  fn: (
+    value: unknown,
+    operand: unknown,
+    evaluateFunction: (value: unknown, query: Record<string, unknown>) => boolean,
+  ) => {
+    if (!Array.isArray(operand)) {
+      return false;
     }
 
-    return conditions.every(condition => {
+    return operand.every((condition) => {
       if (typeof condition !== 'object' || condition === null) {
-        throw new QuboError('Each condition in $and must be an object');
+        return false;
       }
-      return evaluateFn(value, condition);
+      return evaluateFunction(value, condition as Record<string, unknown>);
     });
   },
 };
 
+/**
+ * Matches any of the specified conditions
+ */
 export const $or: Operator = {
   name: '$or',
-  fn: (value: unknown, conditions: unknown, evaluateFn: (value: unknown, query: unknown) => boolean): boolean => {
-    if (!Array.isArray(conditions)) {
-      throw new QuboError('$or requires an array of conditions');
+  fn: (
+    value: unknown,
+    operand: unknown,
+    evaluateFunction: (value: unknown, query: Record<string, unknown>) => boolean,
+  ) => {
+    if (!Array.isArray(operand)) {
+      return false;
     }
 
-    return conditions.some(condition => {
+    return operand.some((condition) => {
       if (typeof condition !== 'object' || condition === null) {
-        throw new QuboError('Each condition in $or must be an object');
+        return false;
       }
-      return evaluateFn(value, condition);
+      return evaluateFunction(value, condition as Record<string, unknown>);
     });
   },
 };
 
+/**
+ * Inverts the specified condition
+ */
 export const $not: Operator = {
   name: '$not',
-  fn: (value: unknown, condition: unknown, evaluateFn: (value: unknown, query: unknown) => boolean): boolean => {
-    if (typeof condition !== 'object' || condition === null) {
-      throw new QuboError('$not requires an object as its argument');
+  fn: (
+    value: unknown,
+    operand: unknown,
+    evaluateFunction: (value: unknown, query: Record<string, unknown>) => boolean,
+  ) => {
+    if (typeof operand !== 'object' || operand === null) {
+      return false;
     }
-    return !evaluateFn(value, condition);
+
+    return !evaluateFunction(value, operand as Record<string, unknown>);
   },
 };
 
+/**
+ * Matches none of the specified conditions
+ */
 export const $nor: Operator = {
   name: '$nor',
-  fn: (value: unknown, conditions: unknown, evaluateFn: (value: unknown, query: unknown) => boolean): boolean => {
-    if (!Array.isArray(conditions)) {
-      throw new QuboError('$nor requires an array of conditions');
+  fn: (
+    value: unknown,
+    operand: unknown,
+    evaluateFunction: (value: unknown, query: Record<string, unknown>) => boolean,
+  ) => {
+    if (!Array.isArray(operand)) {
+      return false;
     }
 
-    return !conditions.some(condition => {
+    return operand.every((condition) => {
       if (typeof condition !== 'object' || condition === null) {
-        throw new QuboError('Each condition in $nor must be an object');
+        return false;
       }
-      return evaluateFn(value, condition);
+      return !evaluateFunction(value, condition as Record<string, unknown>);
     });
   },
 };

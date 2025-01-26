@@ -10,12 +10,12 @@ const testData = [
     categories: ['electronics', 'gadgets'],
     stock: {
       warehouse1: 50,
-      warehouse2: 30
+      warehouse2: 30,
     },
     specs: [
       { key: 'color', value: 'black' },
-      { key: 'size', value: 'medium' }
-    ]
+      { key: 'size', value: 'medium' },
+    ],
   },
   {
     id: 2,
@@ -24,12 +24,12 @@ const testData = [
     categories: ['clothing', 'accessories'],
     stock: {
       warehouse1: 20,
-      warehouse2: 40
+      warehouse2: 40,
     },
     specs: [
       { key: 'color', value: 'red' },
-      { key: 'size', value: 'large' }
-    ]
+      { key: 'size', value: 'large' },
+    ],
   },
   {
     id: 3,
@@ -38,13 +38,13 @@ const testData = [
     categories: ['electronics', 'accessories'],
     stock: {
       warehouse1: 0,
-      warehouse2: 25
+      warehouse2: 25,
     },
     specs: [
       { key: 'color', value: 'silver' },
-      { key: 'size', value: 'small' }
-    ]
-  }
+      { key: 'size', value: 'small' },
+    ],
+  },
 ];
 
 describe('Qubo Query Tests', () => {
@@ -88,7 +88,7 @@ describe('Qubo Query Tests', () => {
       const query: Query = { price: { $gte: 150 } };
       const result = qubo.find(query);
       expect(result).toHaveLength(2);
-      expect(result.map(item => item.price)).toEqual(expect.arrayContaining([150, 200]));
+      expect(result.map((item) => item.price)).toEqual(expect.arrayContaining([150, 200]));
     });
 
     it('should find items with $lt operator', () => {
@@ -108,14 +108,14 @@ describe('Qubo Query Tests', () => {
       const query: Query = { name: { $regex: 'Product [AB]' } };
       const result = qubo.find(query);
       expect(result).toHaveLength(2);
-      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([1, 2]));
+      expect(result.map((item) => item.id)).toEqual(expect.arrayContaining([1, 2]));
     });
 
     it('should handle $regex operator with RegExp object', () => {
       const query: Query = { name: { $regex: /^Product [AB]$/ } };
       const result = qubo.find(query);
       expect(result).toHaveLength(2);
-      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([1, 2]));
+      expect(result.map((item) => item.id)).toEqual(expect.arrayContaining([1, 2]));
     });
   });
 
@@ -124,21 +124,21 @@ describe('Qubo Query Tests', () => {
       const query: Query = { categories: { $in: ['electronics'] } };
       const result = qubo.find(query);
       expect(result).toHaveLength(2);
-      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([1, 3]));
+      expect(result.map((item) => item.id)).toEqual(expect.arrayContaining([1, 3]));
     });
 
     it('should find items with multiple values in $in', () => {
       const query: Query = { categories: { $in: ['electronics', 'accessories'] } };
       const result = qubo.find(query);
       expect(result).toHaveLength(3);
-      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([1, 2, 3]));
+      expect(result.map((item) => item.id)).toEqual(expect.arrayContaining([1, 2, 3]));
     });
 
     it('should find items with $nin operator', () => {
       const query: Query = { categories: { $nin: ['clothing'] } };
       const result = qubo.find(query);
       expect(result).toHaveLength(2);
-      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([1, 3]));
+      expect(result.map((item) => item.id)).toEqual(expect.arrayContaining([1, 3]));
     });
 
     it('should find items with $elemMatch', () => {
@@ -146,9 +146,9 @@ describe('Qubo Query Tests', () => {
         specs: {
           $elemMatch: {
             key: 'color',
-            value: 'black'
-          }
-        }
+            value: 'black',
+          },
+        },
       };
       const result = qubo.find(query);
       expect(result).toHaveLength(1);
@@ -177,8 +177,8 @@ describe('Qubo Query Tests', () => {
       const query: Query = {
         $and: [
           { price: { $gt: 100 } },
-          { categories: { $in: ['electronics'] } }
-        ]
+          { categories: { $in: ['electronics'] } },
+        ],
       };
       const result = qubo.find(query);
       expect(result).toHaveLength(1);
@@ -189,21 +189,21 @@ describe('Qubo Query Tests', () => {
       const query: Query = {
         $or: [
           { price: 200 },
-          { 'stock.warehouse1': 0 }
-        ]
+          { 'stock.warehouse1': 0 },
+        ],
       };
       const result = qubo.find(query);
       expect(result).toHaveLength(2);
-      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([2, 3]));
+      expect(result.map((item) => item.id)).toEqual(expect.arrayContaining([2, 3]));
     });
 
     it('should find items with $not operator', () => {
       const query: Query = {
-        price: { $not: { $gt: 150 } }
+        price: { $not: { $gt: 150 } },
       };
       const result = qubo.find(query);
       expect(result).toHaveLength(2);
-      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([1, 3]));
+      expect(result.map((item) => item.id)).toEqual(expect.arrayContaining([1, 3]));
     });
 
     it('should find items with nested logical operators', () => {
@@ -212,53 +212,53 @@ describe('Qubo Query Tests', () => {
           {
             $and: [
               { price: { $lt: 150 } },
-              { categories: { $in: ['electronics'] } }
-            ]
+              { categories: { $in: ['electronics'] } },
+            ],
           },
-          { 'stock.warehouse2': { $gt: 35 } }
-        ]
+          { 'stock.warehouse2': { $gt: 35 } },
+        ],
       };
       const result = qubo.find(query);
       expect(result).toHaveLength(2);
-      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([1, 2]));
+      expect(result.map((item) => item.id)).toEqual(expect.arrayContaining([1, 2]));
     });
   });
 
   describe('Error Cases', () => {
     it('should throw error for invalid data type', () => {
-      expect(() => createQubo('not an array' as any)).toThrow('Data must be an array');
+      expect(() => createQubo('not an array' as unknown as unknown[])).toThrow('Data must be an array');
     });
 
     it('should throw error for invalid query type', () => {
-      expect(() => qubo.find('not an object' as any)).toThrow('Query must be an object');
-      expect(() => qubo.findOne('not an object' as any)).toThrow('Query must be an object');
-      expect(() => qubo.evaluate('not an object' as any)).toThrow('Query must be an object');
+      expect(() => qubo.find('not an object' as unknown as Query)).toThrow('Query must be an object');
+      expect(() => qubo.findOne('not an object' as unknown as Query)).toThrow('Query must be an object');
+      expect(() => qubo.evaluate('not an object' as unknown as Query)).toThrow('Query must be an object');
     });
 
     it('should throw error for unknown operator', () => {
       const query: Query = {
-        price: { $unknown: 100 }
+        price: { $unknown: 100 },
       };
       expect(() => qubo.find(query)).toThrow('Unknown operator: $unknown');
     });
 
     it('should throw error for invalid $in argument', () => {
       const query: Query = {
-        categories: { $in: 'not an array' as any }
+        categories: { $in: 'not an array' },
       };
       expect(() => qubo.find(query)).toThrow('$in requires an array as its argument');
     });
 
     it('should throw error for invalid $elemMatch argument', () => {
       const query: Query = {
-        specs: { $elemMatch: 'not an object' as any }
+        specs: { $elemMatch: 'not an object' },
       };
       expect(() => qubo.find(query)).toThrow('$elemMatch requires an object as its argument');
     });
 
     it('should throw error for invalid $regex argument', () => {
       const query: Query = {
-        name: { $regex: 123 as any }
+        name: { $regex: 123 },
       };
       expect(() => qubo.find(query)).toThrow('$regex requires a string or RegExp as its argument');
     });
@@ -295,11 +295,11 @@ describe('Qubo Query Tests', () => {
         $and: [
           { price: { $gte: 100 } },
           { 'stock.warehouse1': { $gt: 0 } },
-          { specs: { $elemMatch: { key: 'size', value: { $in: ['medium', 'large'] } } } }
-        ]
+          { specs: { $elemMatch: { key: 'size', value: { $in: ['medium', 'large'] } } } },
+        ],
       };
       const result = qubo.evaluate(query);
       expect(result).toBe(true);
     });
   });
-}); 
+});

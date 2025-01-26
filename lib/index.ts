@@ -11,4 +11,5 @@ export type {
   ComparisonQuery,
   LogicalQuery,
   ArrayQuery,
+  CustomOperator,
 } from './types';
