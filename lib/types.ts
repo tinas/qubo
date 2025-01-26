@@ -47,10 +47,16 @@ export type Operator = {
 
   /**
    * The function that implements the operator's logic
-   * @param args Arguments passed to the operator
+   * @param value The value to compare
+   * @param operand The operand to compare against
+   * @param evaluateFn The function to evaluate the condition
    * @returns A boolean indicating if the condition is met
    */
-  fn: (...args: any[]) => boolean;
+  fn: (
+    value: unknown,
+    operand: unknown,
+    evaluateFn: (value: unknown, query: unknown) => boolean
+  ) => boolean;
 };
 
 /**
@@ -98,6 +104,4 @@ export type ArrayQuery = {
  * The main query type that can be used to find documents
  * Supports nested queries and various operator types
  */
-export type Query = {
-  [key: string]: unknown | ComparisonQuery | LogicalQuery | ArrayQuery | Query;
-};
+export type Query = Record<string, unknown>;

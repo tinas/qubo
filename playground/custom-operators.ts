@@ -1,52 +1,92 @@
-import { createQubo, type Operator, type Query } from '../lib';
+import { createQubo, type Query, type Operator } from '../lib';
 
 // Sample data
-const users = [
-  { name: 'John', age: 25, roles: ['user'] },
-  { name: 'Jane', age: 30, roles: ['user', 'admin'] },
-  { name: 'Bob', age: 20, roles: ['user'] },
-  { name: 'Alice', age: 35, roles: ['user', 'admin', 'superadmin'] }
+const products = [
+  {
+    name: 'Laptop',
+    price: 1200,
+    specs: {
+      ram: 16,
+      storage: 512,
+      processor: 'i7'
+    },
+    ratings: [4.5, 4.8, 4.2, 4.9],
+    releaseDate: '2023-01-15'
+  },
+  {
+    name: 'Smartphone',
+    price: 800,
+    specs: {
+      ram: 8,
+      storage: 256,
+      processor: 'A15'
+    },
+    ratings: [4.7, 4.6, 4.8, 4.9],
+    releaseDate: '2023-03-20'
+  },
+  {
+    name: 'Tablet',
+    price: 600,
+    specs: {
+      ram: 4,
+      storage: 128,
+      processor: 'A14'
+    },
+    ratings: [4.3, 4.1, 4.4],
+    releaseDate: '2022-11-10'
+  }
 ];
 
-// Custom operator that checks if a value is within a range
-const $range: Operator = {
-  name: '$range',
-  fn: (value: unknown, range: [number, number]) => {
-    if (typeof value === 'number' && Array.isArray(range) && range.length === 2) {
-      const [min, max] = range;
-      return value >= min && value <= max;
+// Custom operator: $avg - checks if average of array values meets a condition
+const $avg: Operator = {
+  name: '$avg',
+  fn: (value: unknown, operand: unknown, evaluateFn: (value: unknown, query: unknown) => boolean): boolean => {
+    if (!Array.isArray(value) || typeof operand !== 'object' || operand === null) {
+      return false;
     }
-    return false;
+
+    const avg = value.reduce((sum, val) => sum + (typeof val === 'number' ? val : 0), 0) / value.length;
+    return evaluateFn(avg, operand);
   }
 };
 
-// Custom operator that checks if an array contains all specified values
-const $hasAll: Operator = {
-  name: '$hasAll',
-  fn: (value: unknown, required: unknown[]) => {
-    if (Array.isArray(value) && Array.isArray(required)) {
-      return required.every(item => value.includes(item));
+// Custom operator: $dateAfter - checks if a date string is after the given date
+const $dateAfter: Operator = {
+  name: '$dateAfter',
+  fn: (value: unknown, operand: unknown): boolean => {
+    if (typeof value !== 'string' || typeof operand !== 'string') {
+      return false;
     }
-    return false;
+
+    return new Date(value) > new Date(operand);
   }
 };
 
-// Create qubo instance with custom operators
-const qubo = createQubo(users, {
-  operators: [$range, $hasAll]
+// Create Qubo instance with custom operators
+const qubo = createQubo(products, {
+  operators: [$avg, $dateAfter]
 });
 
-// Find users with age between 25 and 35
+// Find products with average rating greater than 4.5
 const query1: Query = {
-  age: { $range: [25, 35] }
+  ratings: { $avg: { $gt: 4.5 } }
 };
-console.log('Users aged 25-35:', qubo.find(query1));
+console.log('Products with high average rating:', qubo.find(query1));
 
-// Find users that have both 'user' and 'admin' roles
+// Find products released after a specific date
 const query2: Query = {
-  roles: { $hasAll: ['user', 'admin'] }
+  releaseDate: { $dateAfter: '2023-01-01' }
 };
-console.log('Users with user and admin roles:', qubo.find(query2));
+console.log('Products released after Jan 2023:', qubo.find(query2));
+
+// Combine custom operators with built-in operators
+const query3: Query = {
+  $and: [
+    { ratings: { $avg: { $gte: 4.5 } } },
+    { price: { $lt: 1000 } }
+  ]
+};
+console.log('Affordable products with high ratings:', qubo.find(query3));
 
 // This will throw an error because operator name doesn't start with $
 try {
@@ -54,17 +94,17 @@ try {
     name: 'invalid',
     fn: () => true
   };
-  createQubo(users, { operators: [invalidOperator] });
+  createQubo(products, { operators: [invalidOperator] });
 } catch (error) {
   console.error('Error:', error.message);
 }
 
 // This will throw an error because operator is unknown
 try {
-  const query3: Query = {
+  const query4: Query = {
     age: { $unknown: 25 }
   };
-  qubo.find(query3);
+  qubo.find(query4);
 } catch (error) {
   console.error('Error:', error.message);
 } 

@@ -2,51 +2,115 @@ import { createQubo, type Query } from '../lib';
 
 // Sample data
 const products = [
-  { name: 'Phone', price: 699, category: 'Electronics', inStock: true },
-  { name: 'Laptop', price: 1299, category: 'Electronics', inStock: false },
-  { name: 'Book', price: 15, category: 'Books', inStock: true },
-  { name: 'Tablet', price: 499, category: 'Electronics', inStock: true },
-  { name: 'Headphones', price: 99, category: 'Electronics', inStock: true },
-  { name: 'Magazine', price: 10, category: 'Books', inStock: false }
+  {
+    name: 'Laptop',
+    price: 1200,
+    category: 'Electronics',
+    specs: {
+      ram: 16,
+      storage: 512,
+      processor: 'i7'
+    },
+    inStock: true,
+    tags: ['computer', 'premium']
+  },
+  {
+    name: 'Smartphone',
+    price: 800,
+    category: 'Electronics',
+    specs: {
+      ram: 8,
+      storage: 256,
+      processor: 'A15'
+    },
+    inStock: true,
+    tags: ['mobile', 'premium']
+  },
+  {
+    name: 'Headphones',
+    price: 200,
+    category: 'Electronics',
+    specs: {
+      type: 'wireless',
+      battery: 20
+    },
+    inStock: false,
+    tags: ['audio', 'wireless']
+  }
 ];
 
 const qubo = createQubo(products);
 
-// Find electronics that are either cheap (< 100) or expensive (> 1000)
+// $and operator examples
 const query1: Query = {
-  category: 'Electronics',
-  $or: [
-    { price: { $lt: 100 } },
-    { price: { $gt: 1000 } }
-  ]
-};
-console.log('Cheap or expensive electronics:', qubo.find(query1));
-
-// Find products that are not electronics and are in stock
-const query2: Query = {
   $and: [
-    { category: { $neq: 'Electronics' } },
+    { category: 'Electronics' },
+    { price: { $gt: 500 } },
     { inStock: true }
   ]
 };
-console.log('Non-electronics in stock:', qubo.find(query2));
+console.log('Expensive electronics in stock:', qubo.find(query1));
 
-// Find products that are neither books nor out of stock
-const query3: Query = {
-  $nor: [
-    { category: 'Books' },
-    { inStock: false }
+// $or operator examples
+const query2: Query = {
+  $or: [
+    { price: { $lt: 300 } },
+    { tags: { $in: ['premium'] } }
   ]
 };
-console.log('Products that are not books and are in stock:', qubo.find(query3));
+console.log('Budget or premium items:', qubo.find(query2));
 
-// Find products that don't match expensive electronics criteria
-const query4: Query = {
-  $not: {
-    $and: [
-      { category: 'Electronics' },
-      { price: { $gte: 1000 } }
-    ]
-  }
+// $not operator examples
+const query3: Query = {
+  price: { $not: { $gt: 1000 } }
 };
-console.log('Products that are not expensive electronics:', qubo.find(query4)); 
+console.log('Items not more expensive than 1000:', qubo.find(query3));
+
+// $nor operator examples
+const query4: Query = {
+  $nor: [
+    { inStock: false },
+    { price: { $lt: 500 } }
+  ]
+};
+console.log('In stock items not less than 500:', qubo.find(query4));
+
+// Nested logical operators
+const query5: Query = {
+  $or: [
+    {
+      $and: [
+        { category: 'Electronics' },
+        { price: { $lt: 300 } }
+      ]
+    },
+    {
+      $and: [
+        { tags: { $in: ['premium'] } },
+        { inStock: true }
+      ]
+    }
+  ]
+};
+console.log('Budget electronics or premium in-stock items:', qubo.find(query5));
+
+// Complex nested query
+const query6: Query = {
+  $and: [
+    {
+      $or: [
+        { price: { $gte: 1000 } },
+        { tags: { $in: ['wireless'] } }
+      ]
+    },
+    {
+      $not: {
+        $and: [
+          { inStock: false },
+          { category: { $ne: 'Electronics' } }
+        ]
+      }
+    }
+  ]
+};
+console.log('High-end or wireless electronics:', qubo.find(query6)); 

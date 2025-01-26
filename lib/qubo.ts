@@ -1,11 +1,14 @@
 import { Qubo, QuboOptions, Query, Operator } from './types';
 import * as comparisonOperators from './operators/comparison';
 import * as logicalOperators from './operators/logical';
+import * as arrayOperators from './operators/array';
 import { QuboError } from './errors';
+import { evaluateWithOperator } from './utils';
 
 const defaultOperators: Operator[] = [
   ...Object.values(comparisonOperators),
   ...Object.values(logicalOperators),
+  ...Object.values(arrayOperators),
 ];
 
 /**
@@ -65,22 +68,15 @@ function evaluateValue(value: unknown, query: unknown, operators: Map<string, Op
   if (typeof query === 'object' && query !== null) {
     const entries = Object.entries(query as Record<string, unknown>);
     
-    if (entries.length === 1 && entries[0][0].startsWith('$')) {
-      const [operator, operand] = entries[0];
-      const operatorFn = operators.get(operator);
-      if (!operatorFn) {
-        throw new QuboError(`Unknown operator: ${operator}`);
-      }
-      return operatorFn.fn(value, operand);
-    }
-
     return entries.every(([key, subQuery]) => {
       if (key.startsWith('$')) {
-        const operatorFn = operators.get(key);
-        if (!operatorFn) {
-          throw new QuboError(`Unknown operator: ${key}`);
-        }
-        return operatorFn.fn(value, subQuery);
+        return evaluateWithOperator(
+          value,
+          key,
+          subQuery,
+          operators,
+          (v, q) => evaluateValue(v, q, operators)
+        );
       }
       
       // Handle dot notation and array indices
@@ -110,11 +106,13 @@ function evaluateDocument<T>(doc: T, query: Query, operators: Map<string, Operat
     }
 
     if (key.startsWith('$')) {
-      const operatorFn = operators.get(key);
-      if (!operatorFn) {
-        throw new QuboError(`Unknown operator: ${key}`);
-      }
-      return operatorFn.fn(doc, value);
+      return evaluateWithOperator(
+        doc,
+        key,
+        value,
+        operators,
+        (v, q) => evaluateDocument(v as T, q as Query, operators)
+      );
     }
 
     // Handle dot notation and array indices
