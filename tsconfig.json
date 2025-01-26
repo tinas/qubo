@@ -4,13 +4,18 @@
     "module": "commonjs",
     "declaration": true,
     "outDir": "./dist",
-    "rootDirs": ["./lib", "./tools"],
+    "rootDir": "./lib",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "sourceMap": false,
+    "removeComments": true,
+    "noEmitOnError": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   },
-  "include": ["lib/**/*", "tools/**/*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["lib/**/*"],
+  "exclude": ["node_modules", "dist", "playground", "**/*.test.ts"]
 } 

@@ -6,14 +6,18 @@
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
   "files": [
-    "dist",
+    "dist/*.js",
+    "dist/*.d.ts",
+    "dist/operators/*.js",
+    "dist/operators/*.d.ts",
     "README.md",
     "LICENSE"
   ],
   "scripts": {
     "clean": "rimraf dist coverage",
     "prebuild": "npm run clean",
-    "build": "tsc",
+    "build": "tsc && npm run build:esm",
+    "build:esm": "tsc --module es2015 --outDir dist/esm",
     "build:watch": "tsc --watch",
     "test": "jest",
     "test:watch": "jest --watch",
