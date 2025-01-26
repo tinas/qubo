@@ -117,6 +117,28 @@ describe('Qubo Query Tests', () => {
       expect(result).toHaveLength(2);
       expect(result.map((item) => item.id)).toEqual(expect.arrayContaining([1, 2]));
     });
+
+    it('should handle $exists operator with true', () => {
+      const query: Query = { name: { $exists: true } };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(3);
+      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([1, 2, 3]));
+    });
+
+    it('should handle $exists operator with false', () => {
+      const dataWithUndefined = [...testData, { id: 4, price: 50 }];
+      const undefinedQubo = createQubo(dataWithUndefined);
+
+      const query: Query = { name: { $exists: false } };
+      const result = undefinedQubo.find(query);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(4);
+    });
+
+    it('should throw error for invalid $exists argument', () => {
+      const query: Query = { name: { $exists: 'true' as any } };
+      expect(() => qubo.find(query)).toThrow('[qubo] $exists requires a boolean as its argument');
+    });
   });
 
   describe('Array Query Tests', () => {
@@ -350,6 +372,120 @@ describe('Qubo Query Tests', () => {
       };
       const result = qubo.evaluate(query);
       expect(result).toBe(true);
+    });
+  });
+
+  describe('Array Index and Dot Notation Tests', () => {
+    it('should query array indices with bracket notation', () => {
+      const query: Query = { 'specs[0].key': 'color' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(3);
+      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([1, 2, 3]));
+    });
+
+    it('should handle invalid array indices', () => {
+      const query: Query = { 'specs[5].key': 'color' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle invalid array access on non-array', () => {
+      const query: Query = { 'name[0]': 'P' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle deep array indices', () => {
+      const query: Query = { 'specs[0].value': 'black' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(1);
+    });
+  });
+
+  describe('Custom Operator Tests', () => {
+    it('should allow registering custom operators', () => {
+      const customQubo = createQubo(testData, {
+        operators: {
+          $startsWith: (value: unknown, operand: unknown) => {
+            if (typeof value !== 'string' || typeof operand !== 'string') {
+              return false;
+            }
+            return value.startsWith(operand);
+          },
+        },
+      });
+
+      const query: Query = { name: { $startsWith: 'Product' } };
+      const result = customQubo.find(query);
+      expect(result).toHaveLength(3);
+    });
+
+    it('should throw error for invalid custom operator name', () => {
+      expect(() =>
+        createQubo(testData, {
+          operators: {
+            startsWith: () => true,
+          },
+        }),
+      ).toThrow('Invalid operator name: startsWith. Operator names must start with \'$\'');
+    });
+
+    it('should allow registering operators after creation', () => {
+      const customQubo = createQubo(testData);
+      customQubo.registerOperator('$endsWith', (value: unknown, operand: unknown) => {
+        if (typeof value !== 'string' || typeof operand !== 'string') {
+          return false;
+        }
+        return value.endsWith(operand);
+      });
+
+      const query: Query = { name: { $endsWith: 'A' } };
+      const result = customQubo.find(query);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(1);
+    });
+
+    it('should throw error for invalid operator name when registering', () => {
+      const customQubo = createQubo(testData);
+      expect(() =>
+        customQubo.registerOperator('invalidName', () => true),
+      ).toThrow('Invalid operator name: invalidName. Operator names must start with \'$\'');
+    });
+  });
+
+  describe('Edge Cases', () => {
+    it('should handle null values in documents', () => {
+      const dataWithNull = [...testData, { id: 4, name: null, price: 50 }];
+      const nullQubo = createQubo(dataWithNull);
+
+      const query: Query = { name: null };
+      const result = nullQubo.find(query);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(4);
+    });
+
+    it('should handle undefined values in documents', () => {
+      const dataWithUndefined = [...testData, { id: 4, price: 50 }];
+      const undefinedQubo = createQubo(dataWithUndefined);
+
+      const query: Query = { name: { $exists: false } };
+      const result = undefinedQubo.find(query);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(4);
+    });
+
+    it('should handle empty objects in query', () => {
+      const query: Query = { specs: { $elemMatch: {} } };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(3);
+      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([1, 2, 3]));
+    });
+
+    it('should handle non-existent paths', () => {
+      const query: Query = { 'nonexistent.path': 'value' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
     });
   });
 });

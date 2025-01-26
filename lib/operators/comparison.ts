@@ -69,3 +69,14 @@ export const $regex: OperatorFunction = (value: unknown, operand: unknown) => {
 
   return new RegExp(operand).test(value);
 };
+
+/**
+ * Checks if a field exists (or doesn't exist)
+ */
+export const $exists: OperatorFunction = (value: unknown, operand: unknown) => {
+  if (typeof operand !== 'boolean') {
+    throw createTypeError('$exists requires a boolean as its argument');
+  }
+
+  return operand ? value !== undefined : value === undefined;
+};
