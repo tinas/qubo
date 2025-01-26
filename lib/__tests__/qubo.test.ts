@@ -32,7 +32,7 @@ describe('qubo', () => {
     it('should find documents by $gte operator', () => {
       const result = store.find({ age: { $gte: 30 } });
       expect(result).toHaveLength(2);
-      expect(result.map(doc => doc.age).sort()).toEqual([30, 35]);
+      expect(result.map((document) => document.age).sort()).toEqual([30, 35]);
     });
 
     it('should find documents by $lt operator', () => {
@@ -44,13 +44,13 @@ describe('qubo', () => {
     it('should find documents by $lte operator', () => {
       const result = store.find({ age: { $lte: 30 } });
       expect(result).toHaveLength(2);
-      expect(result.map(doc => doc.age).sort()).toEqual([25, 30]);
+      expect(result.map((document) => document.age).sort()).toEqual([25, 30]);
     });
 
     it('should find documents by $in operator', () => {
       const result = store.find({ age: { $in: [25, 35] } });
       expect(result).toHaveLength(2);
-      expect(result.map(doc => doc.age).sort()).toEqual([25, 35]);
+      expect(result.map((document) => document.age).sort()).toEqual([25, 35]);
     });
 
     it('should find documents by $nin operator', () => {
@@ -62,7 +62,7 @@ describe('qubo', () => {
     it('should find documents by $all operator', () => {
       const result = store.find({ tags: { $all: ['developer'] } });
       expect(result).toHaveLength(2);
-      expect(result.map(doc => doc.name).sort()).toEqual(['Bob', 'John']);
+      expect(result.map((document) => document.name).sort()).toEqual(['Bob', 'John']);
     });
 
     it('should handle $all operator with non-array values', () => {
@@ -82,7 +82,7 @@ describe('qubo', () => {
 
     it('should handle $type operator with null values', () => {
       const storeWithNull = createQubo([
-        { id: 1, name: 'John', value: null },
+        { id: 1, name: 'John', value: undefined },
         { id: 2, name: 'Jane', value: 42 },
       ]);
       const result = storeWithNull.find({ value: { $type: 'null' } });
@@ -98,7 +98,7 @@ describe('qubo', () => {
         ],
       });
       expect(result).toHaveLength(2);
-      expect(result.map(doc => doc.name).sort()).toEqual(['Bob', 'John']);
+      expect(result.map((document) => document.name).sort()).toEqual(['Bob', 'John']);
     });
 
     it('should find documents by $or operator', () => {
@@ -109,7 +109,7 @@ describe('qubo', () => {
         ],
       });
       expect(result).toHaveLength(2);
-      expect(result.map(doc => doc.name).sort()).toEqual(['Bob', 'Jane']);
+      expect(result.map((document) => document.name).sort()).toEqual(['Bob', 'Jane']);
     });
 
     it('should find documents by $not operator', () => {
@@ -117,7 +117,7 @@ describe('qubo', () => {
         age: { $not: { $lt: 30 } },
       });
       expect(result).toHaveLength(2);
-      expect(result.map(doc => doc.age).sort()).toEqual([30, 35]);
+      expect(result.map((document) => document.age).sort()).toEqual([30, 35]);
     });
 
     it('should find documents by $nor operator', () => {
@@ -172,17 +172,17 @@ describe('qubo', () => {
       expect(result?.name).toBe('John');
     });
 
-    it('should return null if no document matches', () => {
+    it('should return undefined if no document matches', () => {
       const result = store.findOne({ age: { $gt: 40 } });
-      expect(result).toBeNull();
+      expect(result).toBeUndefined();
     });
   });
 
   describe('evaluate', () => {
     it('should evaluate document against query', () => {
-      const doc = { id: 1, name: 'John', age: 30, tags: ['developer', 'js'] };
-      expect(store.evaluate(doc, { age: { $gte: 30 } })).toBe(true);
-      expect(store.evaluate(doc, { age: { $lt: 30 } })).toBe(false);
+      const document = { id: 1, name: 'John', age: 30, tags: ['developer', 'js'] };
+      expect(store.evaluate(document, { age: { $gte: 30 } })).toBe(true);
+      expect(store.evaluate(document, { age: { $lt: 30 } })).toBe(false);
     });
   });
 
@@ -190,14 +190,16 @@ describe('qubo', () => {
     it('should support custom operators', () => {
       const customStore = createQubo(data, {
         operators: {
-          $between: ((value: number, [min, max]: [number, number]) => value >= min && value <= max) as OperatorFunction,
-          $contains: ((value: string, substr: string) => typeof value === 'string' && value.includes(substr)) as OperatorFunction,
+          $between: ((value: number, [min, max]: [number, number]) =>
+            value >= min && value <= max) as OperatorFunction,
+          $contains: ((value: string, substr: string) =>
+            typeof value === 'string' && value.includes(substr)) as OperatorFunction,
         },
       });
-      
+
       const result1 = customStore.find({ age: { $between: [25, 30] } });
       expect(result1).toHaveLength(2);
-      expect(result1.map(doc => doc.age).sort()).toEqual([25, 30]);
+      expect(result1.map((document) => document.age).sort()).toEqual([25, 30]);
 
       const result2 = customStore.find({ name: { $contains: 'oh' } });
       expect(result2).toHaveLength(1);
