@@ -49,4 +49,4 @@ describe('Library exports', () => {
     expect(qubo.QueryBuilder).toBeDefined();
     expect(qubo.QueryExecutor).toBeDefined();
   });
-}); 
+});

@@ -39,6 +39,7 @@ module.exports = {
       case: 'kebabCase',
       ignore: ['^[A-Z][a-z]+\\..*'],
     }],
+    'unicorn/no-array-callback-reference': 'off',
     '@typescript-eslint/no-unused-vars': 'error',
   },
   settings: {

@@ -12,7 +12,6 @@ MongoDB-style query builder for JavaScript/TypeScript objects with zero dependen
 - 💪 Full TypeScript support
 - 🎯 Zero dependencies
 - 🔍 Rich set of operators
-- 🧠 Smart caching for better performance
 - 🔧 Extensible with custom operators
 - 🔄 Modular design
 
@@ -127,63 +126,11 @@ const canAccessFeature = executor.evaluate(user, {
     }
   ]
 });
-
-// Use with custom operators
-class AgeGroupOperator implements IOperator {
-  evaluate(value: number, group: 'adult' | 'senior'): boolean {
-    switch (group) {
-      case 'adult': return value >= 18 && value < 65;
-      case 'senior': return value >= 65;
-      default: return false;
-    }
-  }
-}
-
-executor.addOperator('$ageGroup', new AgeGroupOperator());
-
-const isAdult = executor.evaluate(user, {
-  age: { $ageGroup: 'adult' }
-});
 ```
 
 ## Query Examples
 
 ### Simple Queries
-
-```typescript
-// Equal match
-executor.find({ name: 'John Doe' });
-
-// Multiple conditions (implicit AND)
-executor.find({ age: 30, "address.country": "USA" });
-
-// Existence check
-executor.find({ email: { $exists: false } });
-```
-
-### Comparison Operators
-
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `$eq` | Equal | `{ age: { $eq: 25 } }` |
-| `$ne` | Not equal | `{ status: { $ne: 'inactive' } }` |
-| `$gt` | Greater than | `{ age: { $gt: 18 } }` |
-| `$gte` | Greater than or equal | `{ age: { $gte: 21 } }` |
-| `$lt` | Less than | `{ price: { $lt: 100 } }` |
-| `$lte` | Less than or equal | `{ stock: { $lte: 50 } }` |
-| `$in` | In array | `{ role: { $in: ['admin', 'mod'] } }` |
-| `$nin` | Not in array | `{ status: { $nin: ['banned'] } }` |
-| `$regex` | Regular expression | `{ name: { $regex: '^J' } }` |
-| `$exists` | Field exists | `{ email: { $exists: true } }` |
-
-### Logical Operators
-
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `$and` | All conditions true | `{ $and: [{...}, {...}] }` |
-| `$or` | Any condition true | `{ $or: [{...}, {...}] }` |
-| `$not` | Negate condition | `{ $not: [{...}] }` |
-| `$nor` | All conditions false | `{ $nor: [{...}, {...}] }` |
 
 ```typescript
 // Complex example
@@ -244,48 +191,6 @@ executor.find({ 'address.location.lat': { $gt: 50 } });
 
 ```typescript
 import { QueryExecutor, IOperator } from 'qubo';
-
-// Create custom operator
-class HasWordCountOperator implements IOperator {
-  evaluate(value: string, count: number): boolean {
-    return typeof value === 'string' && 
-           value.split(/\s+/).length === count;
-  }
-}
-
-// Initialize executor with custom operator
-const executor = new QueryExecutor<User>(users);
-executor.addOperator('$hasWordCount', new HasWordCountOperator());
-
-// Use custom operator
-executor.find({
-  name: { $hasWordCount: 2 } // Matches "John Doe"
-});
-```
-
-## API Reference
-
-### Main Functions
-
-#### `find<T>(query: Query<T>, options?: QueryOptions): T[]`
-- Filters an array based on the query
-- Returns matching elements
-
-#### `findOne<T>(query: Query<T>, options?: QueryOptions): T | null`
-- Returns the first matching element or null
-
-#### `evaluate<T>(item: T, query: Query<T>, options?: QueryOptions): boolean`
-- Evaluates if an item matches the query
-- Returns true if the item matches all conditions
-- Useful for rule evaluation and validation
-
-### Types
-
-```typescript
-interface QueryOptions {
-  customComparisonOperators?: Record<string, CustomComparisonOperator<any>>;
-  customLogicalOperators?: Record<string, CustomLogicalOperator<any>>;
-}
 
 type CustomComparisonOperator<T> = (value: T, compareValue: any) => boolean;
 type CustomLogicalOperator<T> = (queries: Query<T>[], source: T) => boolean;

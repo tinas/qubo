@@ -1,10 +1,10 @@
 import { QueryBuilder } from '../query-builder';
 
 describe('QueryBuilder', () => {
-  let builder: QueryBuilder<any>;
+  let builder: QueryBuilder<Record<string, unknown>>;
 
   beforeEach(() => {
-    builder = new QueryBuilder<any>();
+    builder = new QueryBuilder<Record<string, unknown>>();
   });
 
   describe('basic operations', () => {
@@ -92,11 +92,11 @@ describe('QueryBuilder', () => {
         .eq('name', 'John')
         .gt('age', 25)
         .in('roles', ['admin', 'user']);
-      
+
       expect(builder.build()).toEqual({
         name: { $eq: 'John' },
         age: { $gt: 25 },
-        roles: { $in: ['admin', 'user'] }
+        roles: { $in: ['admin', 'user'] },
       });
     });
 
@@ -104,17 +104,17 @@ describe('QueryBuilder', () => {
       const query1 = { name: 'John' };
       const query2 = { age: { $gt: 25 } };
       const query3 = { roles: { $in: ['admin'] } };
-      
+
       builder.and([
         query1,
-        { $or: [query2, query3] }
+        { $or: [query2, query3] },
       ]);
-      
+
       expect(builder.build()).toEqual({
         $and: [
           query1,
-          { $or: [query2, query3] }
-        ]
+          { $or: [query2, query3] },
+        ],
       });
     });
   });
@@ -122,14 +122,14 @@ describe('QueryBuilder', () => {
   describe('date handling', () => {
     it('should handle date values in comparison operators', () => {
       const date = new Date('2024-01-25');
-      
+
       builder
         .gt('createdAt', date)
         .lt('updatedAt', date);
-      
+
       expect(builder.build()).toEqual({
         createdAt: { $gt: date },
-        updatedAt: { $lt: date }
+        updatedAt: { $lt: date },
       });
     });
   });
@@ -147,4 +147,4 @@ describe('QueryBuilder', () => {
       expect(typedBuilder.build()).toEqual({ name: 'John' });
     });
   });
-}); 
+});

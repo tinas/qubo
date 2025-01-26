@@ -9,7 +9,6 @@ const config: Config.InitialOptions = {
     'lib/**/*.ts',
     '!lib/**/*.d.ts',
     '!lib/**/__tests__/**',
-    '!lib/**/__benchmarks__/**',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov'],
