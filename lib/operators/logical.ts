@@ -86,7 +86,7 @@ export const $nor: OperatorFunction = (
 
   return operand.every((condition) => {
     if (typeof condition !== 'object' || condition === null) {
-      return false;
+      return true;
     }
     return !evaluateFunction(value, condition as Record<string, unknown>);
   });

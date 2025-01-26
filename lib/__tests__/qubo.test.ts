@@ -222,6 +222,56 @@ describe('Qubo Query Tests', () => {
       expect(result).toHaveLength(2);
       expect(result.map((item) => item.id)).toEqual(expect.arrayContaining([1, 2]));
     });
+
+    it('should handle empty $and array', () => {
+      const query: Query = { $and: [] };
+      const result = qubo.find(query);
+      expect(result).toEqual(testData);
+    });
+
+    it('should handle empty $or array', () => {
+      const query: Query = { $or: [] };
+      const result = qubo.find(query);
+      expect(result).toEqual([]);
+    });
+
+    it('should handle non-array argument for $and', () => {
+      const query: Query = { $and: 'not an array' as any };
+      expect(() => qubo.find(query)).toThrow('[qubo] $and requires an array as its argument');
+    });
+
+    it('should handle non-array argument for $or', () => {
+      const query: Query = { $or: 'not an array' as any };
+      expect(() => qubo.find(query)).toThrow('[qubo] $or requires an array as its argument');
+    });
+
+    it('should handle non-object argument for $not', () => {
+      const query: Query = { $not: 'not an object' as any };
+      expect(() => qubo.find(query)).toThrow('[qubo] $not requires an object as its argument');
+    });
+
+    it('should handle $nor operator', () => {
+      const query: Query = {
+        $nor: [
+          { price: { $lte: 150 } },
+          { categories: { $in: ['electronics'] } },
+        ],
+      };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(2);
+    });
+
+    it('should handle empty $nor array', () => {
+      const query: Query = { $nor: [] };
+      const result = qubo.find(query);
+      expect(result).toEqual(testData);
+    });
+
+    it('should handle non-array argument for $nor', () => {
+      const query: Query = { $nor: 'not an array' as any };
+      expect(() => qubo.find(query)).toThrow('[qubo] $nor requires an array as its argument');
+    });
   });
 
   describe('Error Cases', () => {
