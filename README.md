@@ -1,30 +1,15 @@
 # Qubo
 
-[![npm version](https://img.shields.io/npm/v/qubo.svg)](https://www.npmjs.com/package/qubo)
-[![License](https://img.shields.io/npm/l/qubo.svg)](https://github.com/tinas/qubo/blob/main/LICENSE)
-[![codecov](https://codecov.io/gh/tinas/qubo/graph/badge.svg)](https://codecov.io/gh/tinas/qubo)
-
-A lightweight, zero-dependency MongoDB-like query builder for JavaScript/TypeScript objects.
+Qubo is a lightweight TypeScript library that provides MongoDB-like query capabilities for in-memory JavaScript/TypeScript arrays. It allows you to write expressive queries using familiar MongoDB syntax.
 
 ## Features
 
-- MongoDB-like query syntax
-- Fully typed with TypeScript
-- Zero dependencies
-- Supports nested objects and arrays
-- Custom operator registration
-- Intuitive API with `find`, `findOne`, and `evaluate` functions
-- 100% test coverage
-
-## Table of Contents
-
-- [Installation](#installation)
-- [Usage](#usage)
-  - [Basic Usage](#basic-usage)
-  - [Supported Operators](#supported-operators)
-  - [Custom Operators](#custom-operators)
-  - [Type Safety](#type-safety)
-- [API Reference](#api-reference)
+- 🔍 MongoDB-like query syntax
+- 💪 Fully typed with TypeScript
+- 🎯 Built-in comparison, logical, and array operators
+- 🔧 Extensible with custom operators
+- 🛡️ Comprehensive error handling
+- 📝 Well-documented with JSDoc
 
 ## Installation
 
@@ -36,118 +21,137 @@ yarn add qubo
 pnpm add qubo
 ```
 
-## Usage
-
-### Basic Usage
+## Basic Usage
 
 ```typescript
 import { createQubo } from 'qubo';
 
-const users = [
-  { id: 1, name: 'John', age: 25, scores: [85, 90, 95] },
-  { id: 2, name: 'Jane', age: 30, scores: [95, 95, 98] },
-  { id: 3, name: 'Bob', age: 20, scores: [75, 80, 85] },
+const data = [
+  {
+    item: 'journal',
+    instock: [
+      { warehouse: 'A', qty: 5 },
+      { warehouse: 'C', qty: 15 }
+    ]
+  },
+  {
+    item: 'notebook',
+    instock: [{ warehouse: 'C', qty: 5 }]
+  }
 ];
 
-const qubo = createQubo(users);
+const qubo = createQubo(data);
 
-// Find all users age 25 or older
-const adults = qubo.find({ age: { $gte: 25 } });
+// Find items with qty between 10 and 20
+const results = qubo.find({
+  instock: { 
+    $elemMatch: { 
+      qty: { $gt: 10, $lte: 20 } 
+    } 
+  }
+});
 
-// Find first user with a score of 95
-const highScorer = qubo.findOne({ scores: { $all: [95] } });
+// Find first matching item
+const oneResult = qubo.findOne({
+  instock: { 
+    $elemMatch: { 
+      warehouse: 'A' 
+    } 
+  }
+});
 
-// Evaluate if a document matches a query
-const isAdult = qubo.evaluate({ age: 28 }, { age: { $gte: 25 } });
+// Check if any item matches
+const exists = qubo.evaluate({
+  instock: { 
+    $elemMatch: { 
+      qty: { $lt: 10 } 
+    } 
+  }
+});
 ```
 
-### Supported Operators
+## Built-in Operators
 
-#### Comparison Operators
-- `$eq`: Equals
+### Comparison Operators
+- `$eq`: Equal to
+- `$neq`: Not equal to
 - `$gt`: Greater than
-- `$gte`: Greater than or equal
+- `$gte`: Greater than or equal to
 - `$lt`: Less than
-- `$lte`: Less than or equal
-- `$ne`: Not equal
-- `$in`: In array
-- `$nin`: Not in array
+- `$lte`: Less than or equal to
+- `$regex`: Regular expression match
 
-#### Logical Operators
+### Logical Operators
 - `$and`: Logical AND
 - `$or`: Logical OR
 - `$not`: Logical NOT
 - `$nor`: Logical NOR
 
-#### Array Operators
-- `$all`: All elements match
-- `$elemMatch`: Element matches condition
-- `$size`: Array size equals
+### Array Operators
+- `$elemMatch`: Match array elements
+- `$in`: Match any value in array
+- `$nin`: Not match any value in array
 
-#### Element Operators
-- `$exists`: Field exists
-- `$type`: Field is of type
+## Custom Operators
 
-### Custom Operators
-
-You can register custom operators to extend Qubo's functionality:
+You can extend Qubo's functionality by adding your own custom operators:
 
 ```typescript
-const qubo = createQubo(users, {
-  operators: {
-    $between: (value, [min, max]) => value >= min && value <= max,
+import { createQubo, type Operator } from 'qubo';
+
+const $range: Operator = {
+  name: '$range',
+  fn: (value: unknown, range: [number, number]) => {
+    if (typeof value === 'number' && Array.isArray(range) && range.length === 2) {
+      const [min, max] = range;
+      return value >= min && value <= max;
+    }
+    return false;
   }
+};
+
+const qubo = createQubo(data, {
+  operators: [$range]
 });
 
-// Find users with age between 25 and 30
-const result = qubo.find({ age: { $between: [25, 30] } });
+// Use custom operator
+const results = qubo.find({
+  age: { $range: [25, 35] }
+});
 ```
 
-### Type Safety
+## Error Handling
 
-Qubo is fully typed with TypeScript:
+Qubo provides clear error messages prefixed with `[qubo]` for easy identification:
 
 ```typescript
-interface User {
-  id: number;
-  name: string;
-  age: number;
-  scores: number[];
+try {
+  const qubo = createQubo(data);
+  qubo.find({
+    age: { $unknown: 25 } // Unknown operator
+  });
+} catch (error) {
+  console.error(error.message); // [qubo] Unknown operator: $unknown
 }
-
-const qubo = createQubo<User>(users);
-
-// TypeScript will provide type checking and autocompletion
-const result = qubo.find({
-  name: { $eq: 'John' },
-  age: { $gte: 25 },
-  scores: { $all: [95] }
-});
 ```
 
 ## API Reference
 
-### `createQubo<T>(source: T[], options?: QuboOptions)`
+### `createQubo<T>(data: T[], options?: QuboOptions): Qubo<T>`
 
-Creates a new Qubo instance.
+Creates a new Qubo instance for querying an array of documents.
 
 #### Parameters
-- `source`: Array of documents to query
+- `data`: Array of documents to query
 - `options`: Configuration options
-  - `operators`: Custom operators to register
+  - `operators`: Array of custom operators
 
 #### Returns
-Object with the following methods:
-
-##### `find(query: Query<T>): T[]`
-Finds all documents matching the query.
-
-##### `findOne(query: Query<T>): T | null`
-Finds the first document matching the query.
-
-##### `evaluate(doc: T, query: Query<T>): boolean`
-Evaluates if a document matches the query.
+A Qubo instance with the following methods:
+- `find(query: Query): T[]`: Find all matching documents
+- `findOne(query: Query): T | null`: Find first matching document
+- `evaluate(query: Query): boolean`: Check if any document matches
 
 ## License
 
-[MIT](LICENSE)
+MIT
