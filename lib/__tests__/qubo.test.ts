@@ -1,5 +1,7 @@
 import { createQubo } from '../qubo';
 import type { Query } from '../types';
+import { $and, $or, $not, $nor } from '../operators/logical';
+import { $elemMatch as $elementMatch } from '../operators/array';
 
 // Sample test data
 const testData = [
@@ -122,7 +124,7 @@ describe('Qubo Query Tests', () => {
       const query: Query = { name: { $exists: true } };
       const result = qubo.find(query);
       expect(result).toHaveLength(3);
-      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([1, 2, 3]));
+      expect(result.map((item) => item.id)).toEqual(expect.arrayContaining([1, 2, 3]));
     });
 
     it('should handle $exists operator with false', () => {
@@ -380,7 +382,7 @@ describe('Qubo Query Tests', () => {
       const query: Query = { 'specs[0].key': 'color' };
       const result = qubo.find(query);
       expect(result).toHaveLength(3);
-      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([1, 2, 3]));
+      expect(result.map((item) => item.id)).toEqual(expect.arrayContaining([1, 2, 3]));
     });
 
     it('should handle invalid array indices', () => {
@@ -479,7 +481,7 @@ describe('Qubo Query Tests', () => {
       const query: Query = { specs: { $elemMatch: {} } };
       const result = qubo.find(query);
       expect(result).toHaveLength(3);
-      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([1, 2, 3]));
+      expect(result.map((item) => item.id)).toEqual(expect.arrayContaining([1, 2, 3]));
     });
 
     it('should handle non-existent paths', () => {
@@ -571,7 +573,7 @@ describe('Qubo Query Tests', () => {
       };
       const result = qubo.find(query);
       expect(result).toHaveLength(2);
-      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([1, 2]));
+      expect(result.map((item) => item.id)).toEqual(expect.arrayContaining([1, 2]));
     });
 
     it('should handle null query values', () => {
@@ -744,6 +746,411 @@ describe('Qubo Query Tests', () => {
     it('should handle paths with unclosed array brackets', () => {
       const query: Query = { 'specs[0key': 'color' };
       const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('Array Operator Edge Cases', () => {
+    it('should handle $in with array values and no matches', () => {
+      const query: Query = { categories: { $in: ['sports', 'books'] } };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle $in with empty array value', () => {
+      const dataWithEmpty = [...testData, { id: 4, categories: [], price: 50 }];
+      const emptyQubo = createQubo(dataWithEmpty);
+
+      const query: Query = { categories: { $in: ['electronics'] } };
+      const result = emptyQubo.find(query);
+      expect(result).toHaveLength(2);
+    });
+
+    it('should handle $in with empty operand array', () => {
+      const query: Query = { categories: { $in: [] } };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle $nin with array values and all matches', () => {
+      const query: Query = { categories: { $nin: ['sports', 'books'] } };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(3);
+    });
+
+    it('should handle $nin with empty array value', () => {
+      const dataWithEmpty = [...testData, { id: 4, categories: [], price: 50 }];
+      const emptyQubo = createQubo(dataWithEmpty);
+
+      const query: Query = { categories: { $nin: ['electronics'] } };
+      const result = emptyQubo.find(query);
+      expect(result).toHaveLength(2);
+    });
+
+    it('should handle $nin with empty operand array', () => {
+      const query: Query = { categories: { $nin: [] } };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(3);
+    });
+
+    it('should handle $elemMatch with non-array values', () => {
+      const query: Query = { price: { $elemMatch: { $gt: 100 } } };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle $elemMatch with empty array values', () => {
+      const dataWithEmpty = [...testData, { id: 4, specs: [], price: 50 }];
+      const emptyQubo = createQubo(dataWithEmpty);
+
+      const query: Query = {
+        specs: {
+          $elemMatch: {
+            key: 'color',
+          },
+        },
+      };
+      const result = emptyQubo.find(query);
+      expect(result).toHaveLength(3);
+    });
+
+    it('should handle $elemMatch with empty object operand', () => {
+      const query: Query = { specs: { $elemMatch: {} } };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(3);
+    });
+
+    it('should handle $elemMatch with primitive array values', () => {
+      const dataWithPrimitives = [{ id: 1, numbers: [1, 2, 3] }];
+      const primitiveQubo = createQubo(dataWithPrimitives);
+
+      const query: Query = {
+        numbers: {
+          $elemMatch: { $gt: 2 },
+        },
+      };
+      const result = primitiveQubo.find(query);
+      expect(result).toHaveLength(1);
+    });
+
+    it('should handle $elemMatch with array of arrays', () => {
+      const dataWithArrays = [{ id: 1, matrix: [[1, 2], [3, 4]] }];
+      const arrayQubo = createQubo(dataWithArrays);
+
+      const query: Query = {
+        matrix: {
+          $elemMatch: { $elemMatch: { $gt: 3 } },
+        },
+      };
+      const result = arrayQubo.find(query);
+      expect(result).toHaveLength(1);
+    });
+
+    it('should handle $elemMatch with null values in array', () => {
+      const dataWithNull = [{ id: 1, items: [null, { value: 1 }, { value: 2 }] }];
+      const nullQubo = createQubo(dataWithNull);
+
+      const query: Query = {
+        items: {
+          $elemMatch: { value: { $gt: 1 } },
+        },
+      };
+      const result = nullQubo.find(query);
+      expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('Path Resolution Edge Cases', () => {
+    it('should handle non-object values in path resolution', () => {
+      const data = [{ a: 5 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ 'a.b': 1 });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle array access on undefined values', () => {
+      const data = [{ a: undefined }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ 'a[0]': 1 });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle array access on null values', () => {
+      const data = [{ a: null }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ 'a[0]': 1 });
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('Value Evaluation Edge Cases', () => {
+    it('should handle non-object values in query evaluation', () => {
+      const data = [{ a: 1 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ a: null });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle undefined values in query evaluation', () => {
+      const data = [{ a: undefined }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ a: undefined });
+      expect(result).toHaveLength(1);
+    });
+
+    it('should handle null values in query evaluation', () => {
+      const data = [{ a: null }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ a: null });
+      expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('Document Evaluation Edge Cases', () => {
+    it('should handle $elemMatch on non-array documents', () => {
+      const data = [{ items: 'not an array' }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ items: { $elemMatch: { a: 1 } } });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle $elemMatch with empty query', () => {
+      const data = [{ items: [{ a: 1 }] }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ items: { $elemMatch: {} } });
+      expect(result).toHaveLength(1);
+    });
+
+    it('should handle unknown operators in document evaluation', () => {
+      const data = [{ a: 1 }];
+      const qubo = createQubo(data);
+      expect(() => qubo.find({ $unknownOp: 1 })).toThrow('Unknown operator: $unknownOp');
+    });
+  });
+
+  describe('Comparison Operator Edge Cases', () => {
+    it('should handle type mismatches in $gt operator', () => {
+      const data = [{ value: 5 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ value: { $gt: 'string' } });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle type mismatches in $gte operator', () => {
+      const data = [{ value: 5 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ value: { $gte: 'string' } });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle type mismatches in $lt operator', () => {
+      const data = [{ value: 5 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ value: { $lt: 'string' } });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle type mismatches in $lte operator', () => {
+      const data = [{ value: 5 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ value: { $lte: 'string' } });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle non-string values in $regex operator', () => {
+      const data = [{ value: 5 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ value: { $regex: 'pattern' } });
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('Logical Operator Edge Cases', () => {
+    it('should handle missing evaluate function in $and', () => {
+      expect(() => {
+        $and({ value: 5 }, [{ value: 5 }]);
+      }).toThrow('$and requires an evaluate function');
+    });
+
+    it('should handle missing evaluate function in $or', () => {
+      expect(() => {
+        $or({ value: 5 }, [{ value: 5 }]);
+      }).toThrow('$or requires an evaluate function');
+    });
+
+    it('should handle missing evaluate function in $not', () => {
+      expect(() => {
+        $not({ value: 5 }, { value: 5 });
+      }).toThrow('$not requires an evaluate function');
+    });
+
+    it('should handle missing evaluate function in $nor', () => {
+      expect(() => {
+        $nor({ value: 5 }, [{ value: 5 }]);
+      }).toThrow('$nor requires an evaluate function');
+    });
+
+    it('should handle non-object conditions in $and', () => {
+      const data = [{ value: 5 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ $and: [null] });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle non-object conditions in $or', () => {
+      const data = [{ value: 5 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ $or: [null] });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle non-object conditions in $nor', () => {
+      const data = [{ value: 5 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ $nor: [null] });
+      expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('Array Operator Advanced Cases', () => {
+    it('should handle array values in $in operator', () => {
+      const data = [
+        { tags: ['red', 'blue'] },
+        { tags: ['green', 'yellow'] },
+      ];
+      const qubo = createQubo(data);
+      const result = qubo.find({ tags: { $in: ['red', 'green'] } });
+      expect(result).toHaveLength(2);
+    });
+
+    it('should handle array values in $nin operator', () => {
+      const data = [
+        { tags: ['red', 'blue'] },
+        { tags: ['green', 'yellow'] },
+      ];
+      const qubo = createQubo(data);
+      const result = qubo.find({ tags: { $nin: ['purple', 'orange'] } });
+      expect(result).toHaveLength(2);
+    });
+
+    it('should handle array values in $in operator with no matches', () => {
+      const data = [
+        { tags: ['red', 'blue'] },
+        { tags: ['green', 'yellow'] },
+      ];
+      const qubo = createQubo(data);
+      const result = qubo.find({ tags: { $in: ['purple', 'orange'] } });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle array values in $nin operator with matches', () => {
+      const data = [
+        { tags: ['red', 'blue'] },
+        { tags: ['green', 'yellow'] },
+      ];
+      const qubo = createQubo(data);
+      const result = qubo.find({ tags: { $nin: ['red', 'green'] } });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle array values in $in operator with array field', () => {
+      const data = [
+        { tags: ['red', 'blue'] },
+        { tags: ['green', 'yellow'] },
+      ];
+      const qubo = createQubo(data);
+      const result = qubo.find({ tags: { $in: ['red'] } });
+      expect(result).toHaveLength(1);
+    });
+
+    it('should handle array values in $nin operator with array field', () => {
+      const data = [
+        { tags: ['red', 'blue'] },
+        { tags: ['green', 'yellow'] },
+      ];
+      const qubo = createQubo(data);
+      const result = qubo.find({ tags: { $nin: ['red'] } });
+      expect(result).toHaveLength(1);
+    });
+
+    it('should handle missing evaluate function in $elemMatch', () => {
+      const items = [{ value: 1 }, { value: 2 }];
+      expect(() => {
+        // @ts-ignore - Testing runtime behavior
+        $elementMatch(items, { value: 1 });
+      }).toThrow('$elemMatch requires an evaluate function');
+    });
+  });
+
+  describe('Internal Function Tests', () => {
+    it('should validate operator names correctly', () => {
+      const data = [{ value: 1 }];
+      const qubo = createQubo(data);
+      expect(() => {
+        qubo.registerOperator('invalidName', () => true);
+      }).toThrow('Invalid operator name: invalidName. Operator names must start with \'$\'');
+    });
+
+    it('should handle empty path in resolvePath', () => {
+      const data = [{ value: 1 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ '': 1 });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle path with only dots', () => {
+      const data = [{ value: 1 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ '...': 1 });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle path with invalid array syntax', () => {
+      const data = [{ value: 1 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ 'value[abc]': 1 });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle non-object values in evaluateValue with operators', () => {
+      const data = [{ value: 1 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ value: { $gt: null } });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle non-object values in evaluateValue with dot notation', () => {
+      const data = [{ value: 1 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ 'value.nested': 1 });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle non-object values in evaluateDocument with operators', () => {
+      const data = [{ value: 1 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ $and: [null] });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle non-object values in evaluateDocument with dot notation', () => {
+      const data = [{ value: 1 }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ 'value.nested': { $gt: 1 } });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle non-object values in evaluateDocument with $elemMatch', () => {
+      const data = [{ items: 'not an array' }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ items: { $elemMatch: { value: 1 } } });
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle non-object values in evaluateDocument with array indices', () => {
+      const data = [{ items: 'not an array' }];
+      const qubo = createQubo(data);
+      const result = qubo.find({ 'items[0]': 1 });
       expect(result).toHaveLength(0);
     });
   });

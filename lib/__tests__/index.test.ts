@@ -19,4 +19,4 @@ describe('Package Exports', () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe(1);
   });
-}); 
+});
