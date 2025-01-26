@@ -488,4 +488,263 @@ describe('Qubo Query Tests', () => {
       expect(result).toHaveLength(0);
     });
   });
+
+  describe('Path Resolution Tests', () => {
+    it('should handle empty path', () => {
+      const query: Query = { '': 'value' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle path with only dots', () => {
+      const query: Query = { '...': 'value' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle path with invalid array syntax', () => {
+      const query: Query = { 'specs[abc].key': 'value' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle path with unclosed bracket', () => {
+      const query: Query = { 'specs[0.key': 'value' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle path with negative array index', () => {
+      const query: Query = { 'specs[-1].key': 'value' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle deeply nested paths that become undefined', () => {
+      const query: Query = { 'stock.warehouse1.inventory.zone.shelf': 'A1' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('Complex Query Tests', () => {
+    it('should handle queries with multiple operators at the same level', () => {
+      const query: Query = {
+        price: { $gt: 100, $lt: 200 },
+        categories: { $in: ['electronics'], $nin: ['clothing'] },
+      };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(3);
+    });
+
+    it('should handle deeply nested logical operators', () => {
+      const query: Query = {
+        $and: [
+          {
+            $or: [
+              { price: { $lt: 150 } },
+              { price: { $gt: 180 } },
+            ],
+          },
+          {
+            $nor: [
+              { categories: { $in: ['clothing'] } },
+              { 'stock.warehouse1': 0 },
+            ],
+          },
+        ],
+      };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(1);
+      expect(result[0].id).toBe(1);
+    });
+
+    it('should handle queries with array indices and operators', () => {
+      const query: Query = {
+        specs: {
+          $elemMatch: {
+            key: 'color',
+            value: { $in: ['black', 'red'] },
+          },
+        },
+      };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(2);
+      expect(result.map(item => item.id)).toEqual(expect.arrayContaining([1, 2]));
+    });
+
+    it('should handle null query values', () => {
+      const query: Query = { name: { $eq: null } };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle undefined query values', () => {
+      const query: Query = { name: { $eq: undefined } };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+  });
+
+  describe('Edge Cases and Error Handling', () => {
+    it('should handle non-object values in document', () => {
+      type TestData = typeof testData[0];
+      const dataWithPrimitive = [...testData, 'not an object'];
+      const primitiveQubo = createQubo(dataWithPrimitive);
+
+      const query: Query = { id: 1 };
+      const result = primitiveQubo.find(query);
+      expect(result).toHaveLength(1);
+      expect((result[0] as TestData).id).toBe(1);
+    });
+
+    it('should handle non-object values in array fields', () => {
+      const dataWithPrimitiveArray = [
+        {
+          id: 1,
+          tags: ['tag1', 'tag2'],
+          mixedArray: [1, 'string', { key: 'value' }],
+        },
+      ];
+      const mixedQubo = createQubo(dataWithPrimitiveArray);
+
+      const query: Query = { 'mixedArray[0]': 1 };
+      const result = mixedQubo.find(query);
+      expect(result).toHaveLength(1);
+    });
+
+    it('should handle array access on primitive values', () => {
+      const query: Query = { 'price[0]': 1 };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle dot notation on primitive values', () => {
+      const query: Query = { 'price.value': 100 };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle array indices in non-array fields', () => {
+      const query: Query = { 'name[0]': 'P' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle empty path segments', () => {
+      const query: Query = { 'stock.nonexistent.warehouse1': 0 };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle consecutive array indices', () => {
+      const query: Query = { 'specs[0][1].key': 'value' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle array indices without closing bracket', () => {
+      const query: Query = { 'specs[0key': 'color' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle invalid array index values', () => {
+      const query: Query = { 'specs[abc].key': 'value' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle undefined values in array fields', () => {
+      const dataWithUndefined = [
+        {
+          id: 1,
+          array: [1, undefined, 3],
+        },
+      ];
+      const undefinedQubo = createQubo(dataWithUndefined);
+
+      const query: Query = { 'array[1]': undefined };
+      const result = undefinedQubo.find(query);
+      expect(result).toHaveLength(1);
+    });
+  });
+
+  describe('Advanced Error Handling', () => {
+    it('should handle non-object query values', () => {
+      const query = { price: undefined } as Query;
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle non-object query values with operators', () => {
+      const query = { price: { $gt: undefined } } as Query;
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle null query values with operators', () => {
+      const query = { price: { $gt: null } } as Query;
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle array fields with non-object values', () => {
+      const query: Query = {
+        categories: {
+          $elemMatch: 'electronics',
+        },
+      };
+      expect(() => qubo.find(query)).toThrow('[qubo] $elemMatch requires an object as its argument');
+    });
+
+    it('should handle array fields with null values', () => {
+      const query: Query = {
+        categories: {
+          $elemMatch: null,
+        },
+      };
+      expect(() => qubo.find(query)).toThrow('[qubo] $elemMatch requires an object as its argument');
+    });
+
+    it('should handle array fields with undefined values', () => {
+      const query: Query = {
+        categories: {
+          $elemMatch: undefined,
+        },
+      };
+      expect(() => qubo.find(query)).toThrow('[qubo] $elemMatch requires an object as its argument');
+    });
+
+    it('should handle deeply nested paths with array indices', () => {
+      const query: Query = {
+        'stock.warehouse1.inventory[0].zone[1].shelf': 'A1',
+      };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle paths with invalid array indices', () => {
+      const query: Query = {
+        'specs[-1].key': 'color',
+      };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle paths with non-numeric array indices', () => {
+      const query: Query = {
+        'specs[abc].key': 'color',
+      };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+
+    it('should handle paths with unclosed array brackets', () => {
+      const query: Query = { 'specs[0key': 'color' };
+      const result = qubo.find(query);
+      expect(result).toHaveLength(0);
+    });
+  });
 });
