@@ -4,32 +4,27 @@
 [![License](https://img.shields.io/npm/l/qubo.svg)](https://github.com/tinas/qubo/blob/main/LICENSE)
 [![codecov](https://codecov.io/gh/tinas/qubo/graph/badge.svg)](https://codecov.io/gh/tinas/qubo)
 
-MongoDB-style query builder for JavaScript/TypeScript objects with zero dependencies. Qubo allows you to write MongoDB-like queries to filter and evaluate objects in memory.
+A lightweight, zero-dependency MongoDB-like query builder for JavaScript/TypeScript objects.
 
 ## Features
 
-- 🚀 MongoDB-like query syntax
-- 💪 Full TypeScript support
-- 🎯 Zero dependencies
-- 🔍 Rich set of operators
-- 🔧 Extensible with custom operators
-- 🔄 Modular design
+- MongoDB-like query syntax
+- Fully typed with TypeScript
+- Zero dependencies
+- Supports nested objects and arrays
+- Custom operator registration
+- Intuitive API with `find`, `findOne`, and `evaluate` functions
+- 100% test coverage
 
 ## Table of Contents
 
 - [Installation](#installation)
-- [Basic Usage](#basic-usage)
-  - [Filtering](#filtering)
-  - [Evaluating](#evaluating)
-- [Query Examples](#query-examples)
-  - [Simple Queries](#simple-queries)
-  - [Comparison Operators](#comparison-operators)
-  - [Logical Operators](#logical-operators)
-  - [Array Queries](#array-queries)
-  - [Nested Object Queries](#nested-object-queries)
+- [Usage](#usage)
+  - [Basic Usage](#basic-usage)
+  - [Supported Operators](#supported-operators)
   - [Custom Operators](#custom-operators)
+  - [Type Safety](#type-safety)
 - [API Reference](#api-reference)
-- [TypeScript Support](#typescript-support)
 
 ## Installation
 
@@ -41,193 +36,117 @@ yarn add qubo
 pnpm add qubo
 ```
 
-## Basic Usage
+## Usage
 
-### Filtering
+### Basic Usage
 
 ```typescript
-import { QueryExecutor } from 'qubo';
+import { createQubo } from 'qubo';
 
-interface User {
-  name: string;
-  age: number;
-  email: string;
-  address: {
-    city: string;
-    country: string;
-  };
-  tags: string[];
-  lastLoginDate?: Date;
-}
-
-const users: User[] = [
-  {
-    name: "John Doe",
-    age: 30,
-    email: "john@example.com",
-    address: { city: "New York", country: "USA" },
-    tags: ["premium", "active"],
-    lastLoginDate: new Date('2024-01-01')
-  }
+const users = [
+  { id: 1, name: 'John', age: 25, scores: [85, 90, 95] },
+  { id: 2, name: 'Jane', age: 30, scores: [95, 95, 98] },
+  { id: 3, name: 'Bob', age: 20, scores: [75, 80, 85] },
 ];
 
-const executor = new QueryExecutor<User>(users);
+const qubo = createQubo(users);
 
-// Find all matching users
-const results = executor.find({
-  age: { $gte: 25 },
-  "address.country": "USA"
-});
+// Find all users age 25 or older
+const adults = qubo.find({ age: { $gte: 25 } });
 
-// Find first matching user
-const user = executor.findOne({
-  tags: { $contains: "premium" }
-});
+// Find first user with a score of 95
+const highScorer = qubo.findOne({ scores: { $all: [95] } });
+
+// Evaluate if a document matches a query
+const isAdult = qubo.evaluate({ age: 28 }, { age: { $gte: 25 } });
 ```
 
-### Evaluating
+### Supported Operators
 
-```typescript
-import { QueryExecutor } from 'qubo';
+#### Comparison Operators
+- `$eq`: Equals
+- `$gt`: Greater than
+- `$gte`: Greater than or equal
+- `$lt`: Less than
+- `$lte`: Less than or equal
+- `$ne`: Not equal
+- `$in`: In array
+- `$nin`: Not in array
 
-interface Rule {
-  minAge: number;
-  countries: string[];
-  requiredTags: string[];
-}
+#### Logical Operators
+- `$and`: Logical AND
+- `$or`: Logical OR
+- `$not`: Logical NOT
+- `$nor`: Logical NOR
 
-// Example: Check if a user is eligible for premium features
-const eligibilityRule: Rule = {
-  minAge: 21,
-  countries: ["USA", "UK", "EU"],
-  requiredTags: ["active"]
-};
+#### Array Operators
+- `$all`: All elements match
+- `$elemMatch`: Element matches condition
+- `$size`: Array size equals
 
-const executor = new QueryExecutor<User>([]);
-
-// Evaluate a single user against a rule
-const isEligible = executor.evaluate(user, {
-  $and: [
-    { age: { $gte: eligibilityRule.minAge } },
-    { "address.country": { $in: eligibilityRule.countries } },
-    { tags: { $containsAll: eligibilityRule.requiredTags } }
-  ]
-});
-
-// Evaluate multiple conditions
-const canAccessFeature = executor.evaluate(user, {
-  $or: [
-    { tags: { $contains: "premium" } },
-    {
-      $and: [
-        { age: { $gte: 18 } },
-        { lastLoginDate: { $dateWithin: { days: 7 } } }
-      ]
-    }
-  ]
-});
-```
-
-## Query Examples
-
-### Simple Queries
-
-```typescript
-// Complex example
-executor.find({
-  $or: [
-    {
-      $and: [
-        { age: { $gte: 18 } },
-        { age: { $lt: 25 } }
-      ]
-    },
-    {
-      $and: [
-        { role: 'admin' },
-        { "address.country": "USA" }
-      ]
-    }
-  ]
-});
-```
-
-### Array Queries
-
-```typescript
-interface User {
-  name: string;
-  scores: number[];
-  tags: string[];
-}
-
-// Examples
-executor.find({ 'scores.0': { $gte: 90 } }); // First score >= 90
-executor.find({ tags: 'student' }); // Has 'student' tag
-executor.find({ scores: { $size: 3 } }); // Has exactly 3 scores
-```
-
-### Nested Object Queries
-
-```typescript
-interface User {
-  name: string;
-  address: {
-    city: string;
-    country: string;
-    location: {
-      lat: number;
-      lng: number;
-    };
-  };
-}
-
-// Examples
-executor.find({ 'address.city': 'London' });
-executor.find({ 'address.location.lat': { $gt: 50 } });
-```
+#### Element Operators
+- `$exists`: Field exists
+- `$type`: Field is of type
 
 ### Custom Operators
 
-```typescript
-import { QueryExecutor, IOperator } from 'qubo';
+You can register custom operators to extend Qubo's functionality:
 
-type CustomComparisonOperator<T> = (value: T, compareValue: any) => boolean;
-type CustomLogicalOperator<T> = (queries: Query<T>[], source: T) => boolean;
+```typescript
+const qubo = createQubo(users, {
+  operators: {
+    $between: (value, [min, max]) => value >= min && value <= max,
+  }
+});
+
+// Find users with age between 25 and 30
+const result = qubo.find({ age: { $between: [25, 30] } });
 ```
 
-## TypeScript Support
+### Type Safety
+
+Qubo is fully typed with TypeScript:
 
 ```typescript
-import { Query } from 'qubo';
-
 interface User {
   id: number;
   name: string;
   age: number;
-  email?: string;
-  roles: string[];
-  metadata: {
-    lastLogin: Date;
-    preferences: {
-      theme: 'light' | 'dark';
-      notifications: boolean;
-    };
-  };
+  scores: number[];
 }
 
-// Type-safe queries
-const query1: Query<User> = {
-  age: { $gt: 25 },
-  roles: { $in: ['admin'] }
-};
+const qubo = createQubo<User>(users);
 
-// TypeScript errors
-const invalidQuery: Query<User> = {
-  age: { $gt: 'invalid' }, // Type error: string not assignable to number
-  unknownField: 123       // Type error: field does not exist
-};
+// TypeScript will provide type checking and autocompletion
+const result = qubo.find({
+  name: { $eq: 'John' },
+  age: { $gte: 25 },
+  scores: { $all: [95] }
+});
 ```
+
+## API Reference
+
+### `createQubo<T>(source: T[], options?: QuboOptions)`
+
+Creates a new Qubo instance.
+
+#### Parameters
+- `source`: Array of documents to query
+- `options`: Configuration options
+  - `operators`: Custom operators to register
+
+#### Returns
+Object with the following methods:
+
+##### `find(query: Query<T>): T[]`
+Finds all documents matching the query.
+
+##### `findOne(query: Query<T>): T | null`
+Finds the first document matching the query.
+
+##### `evaluate(doc: T, query: Query<T>): boolean`
+Evaluates if a document matches the query.
 
 ## License
 
