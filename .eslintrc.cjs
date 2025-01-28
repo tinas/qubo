@@ -9,12 +9,13 @@ module.exports = {
   parserOptions: {
     ecmaVersion: 2020,
     sourceType: 'module',
-    project: './tsconfig.json',
+    project: ['./tsconfig.json', './tsconfig.esm.json', './tsconfig.types.json'],
     tsconfigRootDir: __dirname,
   },
   env: {
     node: true,
     es6: true,
+    jest: true,
   },
   rules: {
     '@stylistic/semi': ['error', 'always'],
@@ -52,4 +53,5 @@ module.exports = {
       typescript: {},
     },
   },
+  ignorePatterns: ['dist/', 'node_modules/', 'coverage/', '**/*.test.ts', '**/*.spec.ts'],
 }; 
