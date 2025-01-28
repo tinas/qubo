@@ -2,14 +2,15 @@
   "name": "qubo",
   "version": "0.1.0",
   "description": "MongoDB-like query builder for JavaScript/TypeScript objects with zero dependencies",
-  "main": "dist/index.js",
-  "module": "dist/esm/index.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
+  "main": "./dist/cjs/index.js",
+  "module": "./dist/esm/index.js",
+  "types": "./dist/types/index.d.ts",
   "exports": {
     ".": {
-      "require": "./dist/index.js",
       "import": "./dist/esm/index.js",
-      "types": "./dist/index.d.ts"
+      "require": "./dist/cjs/index.js",
+      "types": "./dist/types/index.d.ts"
     }
   },
   "files": [
@@ -20,8 +21,10 @@
   "scripts": {
     "clean": "rimraf dist coverage",
     "prebuild": "npm run clean",
-    "build": "tsc && npm run build:esm",
+    "build": "npm run build:cjs && npm run build:esm && npm run build:types",
+    "build:cjs": "tsc --module commonjs --outDir dist/cjs",
     "build:esm": "tsc --module es2015 --outDir dist/esm",
+    "build:types": "tsc --declaration --declarationDir dist/types --emitDeclarationOnly",
     "build:watch": "tsc --watch",
     "test": "jest",
     "test:watch": "jest --watch",

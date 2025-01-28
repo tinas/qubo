@@ -13,9 +13,11 @@ jest.config.ts
 commitlint.config.ts
 
 # Tests
-__tests__/
+**/__tests__/
+**/tests/
 coverage/
 *.test.ts
+*.spec.ts
 
 # IDE
 .idea/
