@@ -40,7 +40,12 @@ module.exports = {
       ignore: ['^[A-Z][a-z]+\\..*'],
     }],
     'unicorn/no-array-callback-reference': 'off',
-    '@typescript-eslint/no-unused-vars': 'error',
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_"
+      }
+    ],
   },
   settings: {
     'import/resolver': {
