@@ -66,7 +66,6 @@ describe('Qubo Tests', () => {
   let qubo = createQubo<Product>(data);
 
   beforeEach(() => {
-    // Her test öncesi yeniden oluşturmak isterseniz:
     qubo = createQubo<Product>(data);
   });
 
@@ -103,7 +102,7 @@ describe('Qubo Tests', () => {
   });
 
   it('should handle $ne on array flatten', () => {
-    // Let's say we want docs that do NOT have 'paper' in tags
+    // Finding docs without 'paper' in tags
     // 'paper' => #1-> [stationery, paper], #2-> [paper], #3-> [bulk, stationery], #4-> [bulk], #5-> undefined
     // $ne => "paper" =>
     // => doc1 => tags => [stationery, paper], some(...) eq => true => so $ne => false => doc1 excluded
@@ -124,7 +123,7 @@ describe('Qubo Tests', () => {
     const result = qubo.find({
       qty: { $gt: 'not-a-number' } as any,
     });
-    // Tüm doc'lar false => result => []
+    // All docs are false => result => []
     expect(result).toHaveLength(0);
   });
 
@@ -272,7 +271,7 @@ describe('Qubo Tests', () => {
       qubo.find({
         $and: { invalid: 'object' },
       } as any);
-    }).toThrowError('$and expects an array of queries.');
+    }).toThrow('$and expects an array of queries.');
   });
 
   it('should handle $or properly', () => {
@@ -298,7 +297,7 @@ describe('Qubo Tests', () => {
       qubo.find({
         $or: { invalid: 'object' },
       } as any);
-    }).toThrowError('$or expects an array of queries.');
+    }).toThrow('$or expects an array of queries.');
   });
 
   it('should skip invalid subQuery in $or array (branch coverage)', () => {
@@ -347,7 +346,7 @@ describe('Qubo Tests', () => {
       qubo.find({
         qty: { $invalidOp: 99 },
       } as any);
-    }).toThrowError('Unsupported operator: $invalidOp');
+    }).toThrow('Unsupported operator: $invalidOp');
   });
 
   it('should throw error if $eq operator is missing (simulate)', () => {
@@ -362,7 +361,7 @@ describe('Qubo Tests', () => {
       qubo2.find({
         name: 'journal',
       });
-    }).toThrowError('Missing $eq operator definition.');
+    }).toThrow('Missing $eq operator definition.');
   });
 
   it('should handle custom operator', () => {
@@ -389,7 +388,7 @@ describe('Qubo Tests', () => {
   // Array flatten / getNestedValue edge cases
   // --------------------------------------------------
   it('should handle getNestedValue when path is empty or doc is null', () => {
-    // Yukarıdaki kodun her satırını yakalamak istersek:
+    // Testing empty path and null document cases
     const quboEmptyField = createQubo<Product>([
       { id: 999, name: 'empty', qty: 0, instock: null as any },
     ]);
@@ -399,7 +398,6 @@ describe('Qubo Tests', () => {
     expect(bools).toEqual([false]);
   });
 
-  // coverage: handle array + multiple nested
   it('should handle array of arrays if it occurs', () => {
     // simulate doc with an array of arrays
     const multiDocument = {
@@ -413,20 +411,15 @@ describe('Qubo Tests', () => {
     };
     const quboMulti = createQubo<Product>([multiDocument] as unknown as Product[]);
     // "instock.qty" => after first step => arrayOf array => [ [5,10], [5] ]
-    //  flatten again => we'd get [[5,10],[5]] => with our code, it might become
-    //  an array of arrays, so we see if any "5" is found => eq => true
+    //  flatten again => [[5,10],[5]] => array of arrays => "5" found => eq => true
     const bools = quboMulti.evaluate({ 'instock.qty': 5 });
     expect(bools).toEqual([true]);
   });
 
   it('should handle empty path in getNestedValue', () => {
-    // Force an empty path usage
-    // Some code in your library might call getNestedValue(doc, "")
-    // Or you can directly do a doc with no path
+    // Testing empty path case
+    // getNestedValue(doc, "") => if (!path) return obj
     const bools = qubo.evaluate({ '': 5 } as any);
-    // Potentially => doc => getNestedValue(doc, "")
-    // Then "if (!path) return obj"
-    // coverage that line
     expect(bools).toEqual([false, false, false, false, false]);
   });
 
@@ -463,15 +456,15 @@ describe('Qubo Tests', () => {
     ];
     const qb = createQubo(data);
 
-    // $or => will be true for "size=6"
+    // $or => true for "size=6"
     const result = qb.find({
       $or: [
         { size: 6 },
         { color: 'green' },
       ],
     });
-    // doc1 => size=3 => or => matched => handleOr => returns true => we do break => coverage
-    // => should return doc1
+    // doc1 => size=3 => or => matched => handleOr => true => break => coverage
+    // => returns doc1
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe(222);
   });

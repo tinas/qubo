@@ -25,7 +25,6 @@ function getNestedValueRecursive(object: unknown, keys: string[], index: number)
     }
 
     // results might still be array of arrays => flatten it
-    // using flat(Infinity) or your own flatten function
     return results.flat(Infinity);
   }
 
