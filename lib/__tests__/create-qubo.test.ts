@@ -468,4 +468,280 @@ describe('Qubo Tests', () => {
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe(222);
   });
+
+  // --------------------------------------------------
+  // Additional Coverage Tests for Comparison Operators
+  // --------------------------------------------------
+  it('should handle non-numeric and non-array values in $gte operator', () => {
+    const data = [
+      { id: 1, value: 'string' },
+      { id: 2, value: true },
+      { id: 3, value: null },
+    ];
+    const qb = createQubo(data);
+    
+    // Test with non-numeric condition value
+    const result1 = qb.find({ value: { $gte: 'abc' } as any });
+    expect(result1).toHaveLength(0);
+
+    // Test with non-numeric field value
+    const result2 = qb.find({ value: { $gte: 5 } });
+    expect(result2).toHaveLength(0);
+  });
+
+  it('should handle non-numeric and non-array values in $lt operator', () => {
+    const data = [
+      { id: 1, value: 'string' },
+      { id: 2, value: false },
+      { id: 3, value: undefined },
+    ];
+    const qb = createQubo(data);
+    
+    // Test with non-numeric condition value
+    const result1 = qb.find({ value: { $lt: 'abc' } as any });
+    expect(result1).toHaveLength(0);
+
+    // Test with non-numeric field value
+    const result2 = qb.find({ value: { $lt: 5 } });
+    expect(result2).toHaveLength(0);
+  });
+
+  it('should handle non-numeric and non-array values in $lte operator', () => {
+    const data = [
+      { id: 1, value: 'string' },
+      { id: 2, value: {} },
+      { id: 3, value: null },
+    ];
+    const qb = createQubo(data);
+    
+    // Test with non-numeric condition value
+    const result1 = qb.find({ value: { $lte: 'abc' } as any });
+    expect(result1).toHaveLength(0);
+
+    // Test with non-numeric field value
+    const result2 = qb.find({ value: { $lte: 5 } });
+    expect(result2).toHaveLength(0);
+  });
+
+  it('should handle non-array field values in $in operator', () => {
+    const data = [
+      { id: 1, value: 'foo' },
+      { id: 2, value: 42 },
+      { id: 3, value: true },
+    ];
+    const qb = createQubo(data);
+    
+    // Test with primitive field values
+    const result = qb.find({ value: { $in: ['foo', 42, true] } });
+    expect(result).toHaveLength(3);
+    expect(result.map(x => x.value)).toEqual(['foo', 42, true]);
+  });
+
+  it('should handle non-array field values in $nin operator', () => {
+    const data = [
+      { id: 1, value: 'foo' },
+      { id: 2, value: 42 },
+      { id: 3, value: true },
+    ];
+    const qb = createQubo(data);
+    
+    // Test with primitive field values
+    const result = qb.find({ value: { $nin: ['foo', true] } });
+    expect(result).toHaveLength(1);
+    expect(result[0].value).toBe(42);
+  });
+
+  // --------------------------------------------------
+  // Additional Coverage Tests for Edge Cases
+  // --------------------------------------------------
+  it('should handle array with mixed types in comparison operators', () => {
+    const data = [
+      { id: 1, values: [10, 'abc', true, null] },
+      { id: 2, values: [20, 30, 'def'] },
+    ];
+    const qb = createQubo(data);
+
+    // Test $gt with mixed array
+    const gtResult = qb.find({ values: { $gt: 15 } });
+    expect(gtResult).toHaveLength(1);
+    expect(gtResult[0].id).toBe(2);
+
+    // Test $gte with mixed array
+    const gteResult = qb.find({ values: { $gte: 20 } });
+    expect(gteResult).toHaveLength(1);
+    expect(gteResult[0].id).toBe(2);
+
+    // Test $lt with mixed array
+    const ltResult = qb.find({ values: { $lt: 15 } });
+    expect(ltResult).toHaveLength(1);
+    expect(ltResult[0].id).toBe(1);
+
+    // Test $lte with mixed array
+    const lteResult = qb.find({ values: { $lte: 10 } });
+    expect(lteResult).toHaveLength(1);
+    expect(lteResult[0].id).toBe(1);
+  });
+
+  it('should handle array with no numeric values in comparison operators', () => {
+    const data = [
+      { id: 1, values: ['abc', true, null] },
+      { id: 2, values: ['def', false] },
+    ];
+    const qb = createQubo(data);
+
+    // Test $gt with non-numeric array
+    const gtResult = qb.find({ values: { $gt: 5 } });
+    expect(gtResult).toHaveLength(0);
+
+    // Test $gte with non-numeric array
+    const gteResult = qb.find({ values: { $gte: 5 } });
+    expect(gteResult).toHaveLength(0);
+
+    // Test $lt with non-numeric array
+    const ltResult = qb.find({ values: { $lt: 5 } });
+    expect(ltResult).toHaveLength(0);
+
+    // Test $lte with non-numeric array
+    const lteResult = qb.find({ values: { $lte: 5 } });
+    expect(lteResult).toHaveLength(0);
+  });
+
+  // --------------------------------------------------
+  // Final Coverage Tests
+  // --------------------------------------------------
+  it('should handle unsupported root operator', () => {
+    const data = [{ id: 1, value: 42 }];
+    const qb = createQubo(data);
+
+    expect(() => {
+      qb.find({
+        $unsupported: [] as any,
+      });
+    }).toThrow('Unsupported root operator: $unsupported');
+  });
+
+  it('should handle array comparison edge cases', () => {
+    const data = [
+      { id: 1, values: ['a', 'b', 'c'] },
+      { id: 2, values: [true, false] },
+      { id: 3, values: [1, 2, 3] },
+    ];
+    const qb = createQubo(data);
+
+    // Test array with only string values
+    const result1 = qb.find({ values: { $gt: 2 } });
+    expect(result1).toHaveLength(1);
+    expect(result1[0].id).toBe(3);
+
+    // Test array with only boolean values
+    const result2 = qb.find({ values: { $lt: 0 } });
+    expect(result2).toHaveLength(0);
+
+    // Test array with numeric values
+    const result3 = qb.find({ values: { $gte: 3 } });
+    expect(result3).toHaveLength(1);
+    expect(result3[0].id).toBe(3);
+  });
+
+  // --------------------------------------------------
+  // Final Coverage Tests for Comparison Operators
+  // --------------------------------------------------
+  it('should handle basic numeric comparison with $gt operator', () => {
+    const data = [
+      { id: 1, value: 5 },
+      { id: 2, value: 10 },
+      { id: 3, value: 15 },
+    ];
+    const qb = createQubo(data);
+
+    // Test basic numeric comparison
+    const result = qb.find({ value: { $gt: 10 } });
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(3);
+  });
+
+  it('should handle basic numeric comparison with $gte operator', () => {
+    const data = [
+      { id: 1, value: 5 },
+      { id: 2, value: 10 },
+      { id: 3, value: 15 },
+    ];
+    const qb = createQubo(data);
+
+    // Test basic numeric comparison with exact match
+    const result1 = qb.find({ value: { $gte: 10 } });
+    expect(result1).toHaveLength(2);
+    expect(result1.map(x => x.id).sort()).toEqual([2, 3]);
+
+    // Test basic numeric comparison with greater than
+    const result2 = qb.find({ value: { $gte: 12 } });
+    expect(result2).toHaveLength(1);
+    expect(result2[0].id).toBe(3);
+  });
+
+  it('should handle primitive field value in $in operator', () => {
+    const data = [
+      { id: 1, value: 'foo' },
+      { id: 2, value: 42 },
+      { id: 3, value: true },
+      { id: 4, value: null },
+      { id: 5, value: undefined },
+    ];
+    const qb = createQubo(data);
+
+    // Test with single primitive field value
+    const result1 = qb.find({ value: { $in: ['foo', 'bar'] } });
+    expect(result1).toHaveLength(1);
+    expect(result1[0].id).toBe(1);
+
+    // Test with multiple types in condition array
+    const result2 = qb.find({ value: { $in: [42, true, null, undefined] } });
+    expect(result2).toHaveLength(4);
+    expect(result2.map(x => x.id).sort()).toEqual([2, 3, 4, 5]);
+
+    // Test with no matches
+    const result3 = qb.find({ value: { $in: ['bar', 'baz'] } });
+    expect(result3).toHaveLength(0);
+  });
+
+  // --------------------------------------------------
+  // Final Coverage Tests for Edge Cases
+  // --------------------------------------------------
+  it('should handle direct numeric comparison in $gt operator', () => {
+    const data = [
+      { id: 1, value: 42 },
+      { id: 2, value: [1, 2, 3] },  // array case
+      { id: 3, value: 'string' },   // non-numeric case
+    ];
+    const qb = createQubo(data);
+
+    // Test direct numeric comparison (line 45: return fieldValue > conditionValue)
+    const result = qb.find({ value: { $gt: 40 } });
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe(1);
+  });
+
+  it('should handle direct value inclusion in $in operator', () => {
+    const data = [
+      { id: 1, value: 'foo' },
+      { id: 2, value: [1, 2, 3] },  // array case
+      { id: 3, value: 42 },         // direct value case
+      { id: 4, value: true },       // boolean case
+    ];
+    const qb = createQubo(data);
+
+    // Test direct value inclusion (line 100: return conditionValue.includes(fieldValue))
+    const result1 = qb.find({ value: { $in: ['foo', 42, true] } });
+    expect(result1).toHaveLength(3);
+    expect(result1.map(x => x.id).sort()).toEqual([1, 3, 4]);
+
+    // Test array field value
+    const result2 = qb.find({ value: { $in: [1, 2, 3] } });
+    expect(result2).toHaveLength(1);
+    expect(result2[0].id).toBe(2);
+
+    // Test no matches
+    const result3 = qb.find({ value: { $in: ['bar', 99, false] } });
+    expect(result3).toHaveLength(0);
+  });
 });
