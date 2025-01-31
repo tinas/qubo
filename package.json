@@ -1,6 +1,6 @@
 {
   "name": "qubo",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "MongoDB-like query builder for JavaScript/TypeScript objects with zero dependencies",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
