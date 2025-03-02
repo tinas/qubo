@@ -1,4 +1,4 @@
-import { createTypeError } from './utils/create-error';
+import { createTypeError } from './utils/create-error'
 
 /**
  * Handles the $and logical operator by evaluating all subqueries
@@ -15,12 +15,12 @@ export function handleAnd<T>(
   evaluateDocumentFunction: (d: T, q: Record<string, unknown>) => boolean,
 ): boolean {
   if (!Array.isArray(subQueries)) {
-    createTypeError('$and expects an array of queries.');
+    createTypeError('$and expects an array of queries.')
   }
   return subQueries.every((q) => {
-    if (typeof q !== 'object' || q === null) return false;
-    return evaluateDocumentFunction(document, q as Record<string, unknown>);
-  });
+    if (typeof q !== 'object' || q === null) return false
+    return evaluateDocumentFunction(document, q as Record<string, unknown>)
+  })
 }
 
 /**
@@ -38,10 +38,10 @@ export function handleOr<T>(
   evaluateDocumentFunction: (d: T, q: Record<string, unknown>) => boolean,
 ): boolean {
   if (!Array.isArray(subQueries)) {
-    createTypeError('$or expects an array of queries.');
+    createTypeError('$or expects an array of queries.')
   }
   return subQueries.some((q) => {
-    if (typeof q !== 'object' || q === null) return false;
-    return evaluateDocumentFunction(document, q as Record<string, unknown>);
-  });
+    if (typeof q !== 'object' || q === null) return false
+    return evaluateDocumentFunction(document, q as Record<string, unknown>)
+  })
 }

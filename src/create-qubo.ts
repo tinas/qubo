@@ -1,7 +1,7 @@
-import { QuboOptions, OperatorFunction, QuboInstance } from './types';
-import { createComparisonOperators } from './core/operators/comparison-operators';
-import { createElementMatchOperator } from './core/operators/element-match-operator';
-import { evaluateDocument } from './core/evaluate-document';
+import { QuboOptions, OperatorFunction, QuboInstance } from './types'
+import { createComparisonOperators } from './core/operators/comparison-operators'
+import { createElementMatchOperator } from './core/operators/element-match-operator'
+import { evaluateDocument } from './core/evaluate-document'
 
 /**
  * Creates a new Qubo instance for querying and filtering arrays of objects, similar to MongoDB's query syntax.
@@ -34,29 +34,29 @@ import { evaluateDocument } from './core/evaluate-document';
  * ```
  */
 export function createQubo<T>(dataSource: T[], options?: QuboOptions<T>): QuboInstance<T> {
-  const baseOperators = createComparisonOperators<T>();
-  baseOperators['$elemMatch'] = createElementMatchOperator(baseOperators);
+  const baseOperators = createComparisonOperators<T>()
+  baseOperators['$elemMatch'] = createElementMatchOperator(baseOperators)
 
   const allOperators: Record<string, OperatorFunction<T>> = {
     ...baseOperators,
     ...options?.operators,
-  };
+  }
 
   return {
     evaluate(query: Record<string, unknown>): boolean[] {
-      return dataSource.map((document) => evaluateDocument(document, query, allOperators));
+      return dataSource.map((document) => evaluateDocument(document, query, allOperators))
     },
 
     find(query: Record<string, unknown>): T[] {
-      return dataSource.filter((document) => evaluateDocument(document, query, allOperators));
+      return dataSource.filter((document) => evaluateDocument(document, query, allOperators))
     },
 
     findOne(query: Record<string, unknown>): T | undefined {
-      return dataSource.find((document) => evaluateDocument(document, query, allOperators));
+      return dataSource.find((document) => evaluateDocument(document, query, allOperators))
     },
 
     evaluateOne(document: T, query: Record<string, unknown>): boolean {
-      return evaluateDocument(document, query, allOperators);
+      return evaluateDocument(document, query, allOperators)
     },
-  };
+  }
 }

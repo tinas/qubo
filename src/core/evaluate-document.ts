@@ -1,7 +1,7 @@
-import { OperatorFunction } from '../types';
-import { handleAnd, handleOr } from './handle-logical-operators';
-import { handleFieldOperators } from './handle-field-operators';
-import { createError } from './utils/create-error';
+import { OperatorFunction } from '../types'
+import { handleAnd, handleOr } from './handle-logical-operators'
+import { handleFieldOperators } from './handle-field-operators'
+import { createError } from './utils/create-error'
 
 /**
  * Evaluates a document against a query using the provided operators
@@ -25,27 +25,27 @@ export function evaluateDocument<T>(
         case '$and': {
           // All conditions in $and must be true
           if (!handleAnd(document, condition as unknown[], (d, q) => evaluateDocument(d, q, operators))) {
-            return false;
+            return false
           }
-          break;
+          break
         }
         case '$or': {
           // At least one condition in $or must be true
           if (!handleOr(document, condition as unknown[], (d, q) => evaluateDocument(d, q, operators))) {
-            return false;
+            return false
           }
-          break;
+          break
         }
         default: {
-          createError(`Unsupported root operator: ${key}`);
+          createError(`Unsupported root operator: ${key}`)
         }
       }
     } else {
       // Handle field-specific operators
       if (!handleFieldOperators(document, key, condition, operators)) {
-        return false;
+        return false
       }
     }
   }
-  return true;
+  return true
 }

@@ -15,7 +15,8 @@ jobs:
         node-version: [18.x, 20.x]
 
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Install pnpm
         uses: pnpm/action-setup@v3
@@ -31,12 +32,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Run linting
-        run: |
-          pnpm lint
+      - name: Run Lint
+        run: pnpm lint
 
-      - name: Run tests with coverage
+      - name: Run Tests with coverage
         run: pnpm test:coverage
+
+      - name: Build
+        run: pnpm build:prod
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

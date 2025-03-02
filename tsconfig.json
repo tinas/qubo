@@ -1,28 +1,17 @@
 {
   "compilerOptions": {
-    "target": "es2020",
-    "module": "commonjs",
+    "target": "ESNext",
+    "module": "ESNext",
     "moduleResolution": "node",
-    "declaration": false,
-    "outDir": "./dist/cjs",
-    "rootDir": "./lib",
+    "newLine": "lf",
+    "declaration": true,
+    "declarationDir": "dist/types",
+    "outDir": "dist",
     "strict": true,
     "esModuleInterop": true,
-    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "sourceMap": false,
-    "removeComments": true,
-    "noEmitOnError": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true
+    "skipLibCheck": true,
+    "types": ["vitest/globals"]
   },
-  "include": ["lib/**/*"],
-  "exclude": [
-    "node_modules",
-    "dist",
-    "playground",
-    "**/__tests__/**",
-    "**/*.test.ts",
-    "**/*.spec.ts"
-  ]
-} 
+  "include": ["src/**/*", "__tests__"]
+}

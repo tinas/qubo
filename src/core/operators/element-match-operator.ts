@@ -1,5 +1,5 @@
-import { OperatorFunction } from '../../types';
-import { evaluateDocument } from '../evaluate-document';
+import { OperatorFunction } from '../../types'
+import { evaluateDocument } from '../evaluate-document'
 
 /**
  * Creates an operator function that matches array elements against a query
@@ -14,9 +14,9 @@ export function createElementMatchOperator<T>(
   allOperators: Record<string, OperatorFunction<T>>,
 ): OperatorFunction<T> {
   return (fieldValue, conditionValue, _document) => {
-    if (!Array.isArray(fieldValue)) return false;
+    if (!Array.isArray(fieldValue)) return false
     return fieldValue.some((element) => {
-      return evaluateDocument(element as T, conditionValue as Record<string, unknown>, allOperators);
-    });
-  };
+      return evaluateDocument(element as T, conditionValue as Record<string, unknown>, allOperators)
+    })
+  }
 }

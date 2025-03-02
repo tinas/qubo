@@ -10,7 +10,7 @@ export type OperatorFunction<T> = (
   fieldValue: unknown,
   conditionValue: unknown,
   document: T
-) => boolean;
+) => boolean
 
 /**
  * Configuration options for creating a Qubo instance

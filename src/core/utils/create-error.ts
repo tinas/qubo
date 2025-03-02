@@ -1,5 +1,5 @@
 /** Prefix used for all qubo-related errors */
-const ERROR_PREFIX = '[qubo]';
+const ERROR_PREFIX = '[qubo]'
 
 /**
  * Creates and throws a new Error with the qubo prefix
@@ -7,7 +7,7 @@ const ERROR_PREFIX = '[qubo]';
  * @throws {Error} Always throws an error with the prefixed message
  */
 export function createError(message: string): Error {
-  throw new Error(`${ERROR_PREFIX} ${message}`);
+  throw new Error(`${ERROR_PREFIX} ${message}`)
 }
 
 /**
@@ -16,5 +16,5 @@ export function createError(message: string): Error {
  * @throws {TypeError} Always throws a type error with the prefixed message
  */
 export function createTypeError(message: string): TypeError {
-  throw new TypeError(`${ERROR_PREFIX} ${message}`);
+  throw new TypeError(`${ERROR_PREFIX} ${message}`)
 }

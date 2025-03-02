@@ -1,6 +1,6 @@
-import { OperatorFunction } from '../types';
-import { createError } from './utils/create-error';
-import { getNestedValue } from './utils/get-nested-value';
+import { OperatorFunction } from '../types'
+import { createError } from './utils/create-error'
+import { getNestedValue } from './utils/get-nested-value'
 
 /**
  * Handles field-specific operators in a query
@@ -22,31 +22,31 @@ export function handleFieldOperators<T>(
   condition: unknown,
   operators: Record<string, OperatorFunction<T>>,
 ): boolean {
-  const fieldValue = getNestedValue(document, fieldName);
+  const fieldValue = getNestedValue(document, fieldName)
 
   if (
     typeof condition === 'object' &&
     condition !== null &&
     !Array.isArray(condition)
   ) {
-    const subObject = condition as Record<string, unknown>;
+    const subObject = condition as Record<string, unknown>
     for (const [opKey, opValue] of Object.entries(subObject)) {
-      const opFunction = operators[opKey];
+      const opFunction = operators[opKey]
       if (!opFunction) {
-        createError(`Unsupported operator: ${opKey}`);
+        createError(`Unsupported operator: ${opKey}`)
       }
       if (!opFunction(fieldValue, opValue, document)) {
-        return false;
+        return false
       }
     }
   } else {
-    const eqFunction = operators['$eq'];
+    const eqFunction = operators['$eq']
     if (!eqFunction) {
-      createError('Missing $eq operator definition.');
+      createError('Missing $eq operator definition.')
     }
     if (!eqFunction(fieldValue, condition, document)) {
-      return false;
+      return false
     }
   }
-  return true;
+  return true
 }

@@ -1,4 +1,4 @@
-import { OperatorFunction } from '../../types';
+import { OperatorFunction } from '../../types'
 
 /**
  * Creates a set of comparison operators for querying documents
@@ -13,9 +13,9 @@ export function createComparisonOperators<T>(): Record<string, OperatorFunction<
      */
     $eq: (fieldValue, conditionValue) => {
       if (Array.isArray(fieldValue)) {
-        return fieldValue.includes(conditionValue);
+        return fieldValue.includes(conditionValue)
       }
-      return fieldValue === conditionValue;
+      return fieldValue === conditionValue
     },
 
     /**
@@ -24,9 +24,9 @@ export function createComparisonOperators<T>(): Record<string, OperatorFunction<
      */
     $ne: (fieldValue, conditionValue) => {
       if (Array.isArray(fieldValue)) {
-        return !fieldValue.includes(conditionValue);
+        return !fieldValue.includes(conditionValue)
       }
-      return fieldValue !== conditionValue;
+      return fieldValue !== conditionValue
     },
 
     /**
@@ -34,15 +34,15 @@ export function createComparisonOperators<T>(): Record<string, OperatorFunction<
      * For arrays, checks if any element is greater than condition value
      */
     $gt: (fieldValue, conditionValue) => {
-      if (typeof conditionValue !== 'number') return false;
+      if (typeof conditionValue !== 'number') return false
       // If fieldValue is array, check if at least one element > conditionValue
       if (Array.isArray(fieldValue)) {
-        return fieldValue.some((value) => typeof value === 'number' && value > conditionValue);
+        return fieldValue.some((value) => typeof value === 'number' && value > conditionValue)
       }
       if (typeof fieldValue === 'number') {
-        return fieldValue > conditionValue;
+        return fieldValue > conditionValue
       }
-      return false;
+      return false
     },
 
     /**
@@ -50,14 +50,14 @@ export function createComparisonOperators<T>(): Record<string, OperatorFunction<
      * For arrays, checks if any element is greater than or equal to condition value
      */
     $gte: (fieldValue, conditionValue) => {
-      if (typeof conditionValue !== 'number') return false;
+      if (typeof conditionValue !== 'number') return false
       if (Array.isArray(fieldValue)) {
-        return fieldValue.some((value) => typeof value === 'number' && value >= conditionValue);
+        return fieldValue.some((value) => typeof value === 'number' && value >= conditionValue)
       }
       if (typeof fieldValue === 'number') {
-        return fieldValue >= conditionValue;
+        return fieldValue >= conditionValue
       }
-      return false;
+      return false
     },
 
     /**
@@ -65,14 +65,14 @@ export function createComparisonOperators<T>(): Record<string, OperatorFunction<
      * For arrays, checks if any element is less than condition value
      */
     $lt: (fieldValue, conditionValue) => {
-      if (typeof conditionValue !== 'number') return false;
+      if (typeof conditionValue !== 'number') return false
       if (Array.isArray(fieldValue)) {
-        return fieldValue.some((value) => typeof value === 'number' && value < conditionValue);
+        return fieldValue.some((value) => typeof value === 'number' && value < conditionValue)
       }
       if (typeof fieldValue === 'number') {
-        return fieldValue < conditionValue;
+        return fieldValue < conditionValue
       }
-      return false;
+      return false
     },
 
     /**
@@ -80,14 +80,14 @@ export function createComparisonOperators<T>(): Record<string, OperatorFunction<
      * For arrays, checks if any element is less than or equal to condition value
      */
     $lte: (fieldValue, conditionValue) => {
-      if (typeof conditionValue !== 'number') return false;
+      if (typeof conditionValue !== 'number') return false
       if (Array.isArray(fieldValue)) {
-        return fieldValue.some((value) => typeof value === 'number' && value <= conditionValue);
+        return fieldValue.some((value) => typeof value === 'number' && value <= conditionValue)
       }
       if (typeof fieldValue === 'number') {
-        return fieldValue <= conditionValue;
+        return fieldValue <= conditionValue
       }
-      return false;
+      return false
     },
 
     /**
@@ -95,11 +95,11 @@ export function createComparisonOperators<T>(): Record<string, OperatorFunction<
      * For arrays, checks if any element is in the condition array
      */
     $in: (fieldValue, conditionValue) => {
-      if (!Array.isArray(conditionValue)) return false;
+      if (!Array.isArray(conditionValue)) return false
       if (Array.isArray(fieldValue)) {
-        return fieldValue.some((value) => conditionValue.includes(value));
+        return fieldValue.some((value) => conditionValue.includes(value))
       }
-      return conditionValue.includes(fieldValue);
+      return conditionValue.includes(fieldValue)
     },
 
     /**
@@ -107,11 +107,11 @@ export function createComparisonOperators<T>(): Record<string, OperatorFunction<
      * For arrays, checks if no element is in the condition array
      */
     $nin: (fieldValue, conditionValue) => {
-      if (!Array.isArray(conditionValue)) return false;
+      if (!Array.isArray(conditionValue)) return false
       if (Array.isArray(fieldValue)) {
-        return fieldValue.every((value) => !conditionValue.includes(value));
+        return fieldValue.every((value) => !conditionValue.includes(value))
       }
-      return !conditionValue.includes(fieldValue);
+      return !conditionValue.includes(fieldValue)
     },
-  };
+  }
 }
