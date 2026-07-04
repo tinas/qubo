@@ -2,20 +2,19 @@
 
 [![npm version](https://img.shields.io/npm/v/qubo.svg)](https://www.npmjs.com/package/qubo)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![codecov](https://codecov.io/gh/tinas/qubo/branch/main/graph/badge.svg)](https://codecov.io/gh/tinas/qubo)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-blue.svg)](https://www.typescriptlang.org/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
 
-Qubo is a lightweight TypeScript library that provides MongoDB-like query capabilities for in-memory JavaScript/TypeScript arrays. It allows you to write expressive queries using a familiar syntax while maintaining type safety.
+Qubo is a lightweight TypeScript library that provides MongoDB-like query capabilities for in-memory JavaScript/TypeScript objects and arrays. It ships a stateless query engine: create it once, evaluate any document or collection against expressive queries.
 
 ## Features
 
 - 🎯 MongoDB-like query syntax with TypeScript support
-- 🚀 High-performance in-memory querying
-- 💪 Rich set of comparison, logical, and array operators
-- 🎨 Extensible with custom operators
-- 📝 Well-documented API with TypeScript types
-- 🔍 Deep object and array querying capabilities
+- 🚀 Stateless engine — one instance evaluates any document or collection
+- 💪 Rich set of comparison, logical, array and element operators
+- 🎨 Truly extensible: custom operators can recurse into sub-queries, exactly like the built-ins
+- 🔍 Deep object and array querying with dot notation
+- 📦 Zero dependencies
 
 ## Installation
 
@@ -30,226 +29,167 @@ pnpm add qubo
 ## Basic Usage
 
 ```typescript
-import { createQubo } from 'qubo';
+import { createQubo } from 'qubo'
 
-const data = [
-  { 
+const qubo = createQubo()
+
+const users = [
+  {
     name: 'John',
     age: 30,
     scores: [85, 90, 95],
-    address: {
-      city: 'New York',
-      zip: '10001'
-    }
+    address: { city: 'New York', zip: '10001' },
   },
-  { 
+  {
     name: 'Jane',
     age: 25,
     scores: [95, 85, 80],
-    address: {
-      city: 'Boston',
-      zip: '02108'
-    }
-  }
-];
+    address: { city: 'Boston', zip: '02108' },
+  },
+]
 
-const qubo = createQubo(data);
+// Test a single document — the primary use case
+qubo.evaluate(users[0], { age: { $gte: 25 } }) // true
 
-// Find all documents where age is greater than 25
-const results = qubo.find({ age: { $gt: 25 } });
+// Bind a query once, reuse the predicate
+const isAdult = qubo.compile({ age: { $gte: 18 } })
+users.filter(isAdult)
 
-// Using logical operators
-const bostonOrNewYork = qubo.find({
-  $or: [
-    { 'address.city': 'Boston' },
-    { 'address.city': 'New York' }
-  ]
-});
-
-// Using array operators
-const highScores = qubo.find({
-  scores: { $elemMatch: { $gte: 90 } }
-});
-
-// Evaluate a single document
-const matches = qubo.evaluateOne(
-  { name: 'Alice', age: 28 }, 
-  { age: { $gte: 25 } }
-);
+// Query collections
+qubo.find(users, { age: { $gt: 25 } })
+qubo.findOne(users, {
+  $or: [{ 'address.city': 'Boston' }, { 'address.city': 'New York' }],
+})
+qubo.find(users, { scores: { $elemMatch: { $gte: 90 } } })
 ```
 
 ## Available Operators
 
 ### Comparison Operators
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `$eq` | Matches values equal to specified value | `{ age: { $eq: 25 } }` |
-| `$ne` | Matches values not equal to specified value | `{ status: { $ne: 'inactive' } }` |
-| `$gt` | Matches values greater than specified value | `{ price: { $gt: 100 } }` |
-| `$gte` | Matches values greater than or equal to specified value | `{ rating: { $gte: 4 } }` |
-| `$lt` | Matches values less than specified value | `{ stock: { $lt: 20 } }` |
-| `$lte` | Matches values less than or equal to specified value | `{ priority: { $lte: 3 } }` |
-| `$in` | Matches any value in the specified array | `{ category: { $in: ['A', 'B'] } }` |
-| `$nin` | Matches none of the values in the specified array | `{ tag: { $nin: ['draft', 'deleted'] } }` |
+| Operator | Description                                                      | Example                             |
+| -------- | ---------------------------------------------------------------- | ----------------------------------- |
+| `$eq`    | Structural equality (objects, arrays and dates compare by value) | `{ age: { $eq: 25 } }`              |
+| `$ne`    | Negated `$eq`                                                    | `{ status: { $ne: 'inactive' } }`   |
+| `$gt`    | Greater than (numbers, strings, bigints, dates)                  | `{ price: { $gt: 100 } }`           |
+| `$gte`   | Greater than or equal                                            | `{ rating: { $gte: 4 } }`           |
+| `$lt`    | Less than                                                        | `{ stock: { $lt: 20 } }`            |
+| `$lte`   | Less than or equal                                               | `{ priority: { $lte: 3 } }`         |
+| `$in`    | Matches any value in the given array                             | `{ category: { $in: ['A', 'B'] } }` |
+| `$nin`   | Matches none of the values in the given array                    | `{ tag: { $nin: ['draft'] } }`      |
+
+When the field value is an array, comparison operators match if **any element** satisfies the condition, and `$eq` additionally matches the array as a whole.
 
 ### Logical Operators
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `$and` | Matches all specified conditions | `{ $and: [{ price: { $gt: 10 } }, { stock: { $gt: 0 } }] }` |
-| `$or` | Matches at least one condition | `{ $or: [{ status: 'active' }, { priority: 1 }] }` |
+| Operator | Description                                | Example                                                     |
+| -------- | ------------------------------------------ | ----------------------------------------------------------- |
+| `$and`   | All sub-queries must match                 | `{ $and: [{ price: { $gt: 10 } }, { stock: { $gt: 0 } }] }` |
+| `$or`    | At least one sub-query must match          | `{ $or: [{ status: 'active' }, { priority: 1 }] }`          |
+| `$nor`   | No sub-query may match                     | `{ $nor: [{ status: 'archived' }, { hidden: true }] }`      |
+| `$not`   | Negates a sub-query or operator expression | `{ age: { $not: { $gt: 65 } } }`                            |
 
-### Array Operators
+### Array and Element Operators
 
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `$elemMatch` | Matches documents that contain an array element matching all specified conditions | `{ scores: { $elemMatch: { $gte: 90 } } }` |
+| Operator     | Description                                   | Example                                    |
+| ------------ | --------------------------------------------- | ------------------------------------------ |
+| `$elemMatch` | An array element matches all given conditions | `{ scores: { $elemMatch: { $gte: 90 } } }` |
+| `$size`      | Array has exactly the given length            | `{ tags: { $size: 2 } }`                   |
+| `$exists`    | Field is (or is not) present                  | `{ deletedAt: { $exists: false } }`        |
 
 ## Deep Object Querying
 
-Qubo supports querying nested objects using dot notation:
+Use dot notation for nested fields. Intermediate arrays fan out automatically, so a path like `inventory.qty` over an array of objects resolves to all quantities:
 
 ```typescript
-const data = [
-  {
-    item: 'laptop',
-    specs: {
-      cpu: {
-        cores: 8,
-        speed: 2.4
-      },
-      memory: {
-        size: 16,
-        type: 'DDR4'
-      }
-    }
-  }
-];
-
-const qubo = createQubo(data);
-
-// Query nested fields
-const results = qubo.find({
+qubo.find(products, {
   'specs.cpu.cores': { $gte: 8 },
-  'specs.memory.type': 'DDR4'
-});
-```
-
-## Array Handling
-
-Qubo provides powerful array querying capabilities:
-
-```typescript
-const data = [
-  {
-    product: 'Gaming Laptop',
-    inventory: [
-      { store: 'Main', quantity: 5, price: 1200 },
-      { store: 'Branch', quantity: 3, price: 1250 }
-    ],
-    tags: ['electronics', 'gaming']
-  }
-];
-
-const qubo = createQubo(data);
-
-// Find products with specific inventory conditions
-const results = qubo.find({
-  inventory: {
-    $elemMatch: {
-      store: 'Main',
-      quantity: { $gt: 0 },
-      price: { $lt: 1500 }
-    }
-  }
-});
-
-// Find products with specific tags
-const gaming = qubo.find({
-  tags: { $in: ['gaming'] }
-});
+  'inventory.qty': { $gt: 0 },
+})
 ```
 
 ## Custom Operators
 
-You can extend Qubo's functionality by adding your own operators:
+Every operator — built-in or custom — has the same signature and receives a `context` that exposes the engine itself. This means custom operators can resolve paths, read the root document and recurse into sub-queries, exactly like `$elemMatch` or `$not` do:
 
 ```typescript
-import { createQubo, type OperatorFunction } from 'qubo';
+import { createQubo, type OperatorFn, type Query } from 'qubo'
 
-// Custom operator that checks if a number is within a range
-const $between: OperatorFunction<any> = (fieldValue, [min, max]) => {
-  if (typeof fieldValue !== 'number') return false;
-  return fieldValue >= min && fieldValue <= max;
-};
+// A simple value-level operator
+const $between: OperatorFn = (value, operand) => {
+  if (!Array.isArray(operand)) return false
+  const [min, max] = operand as [number, number]
+  return typeof value === 'number' && value >= min && value <= max
+}
 
-// Custom operator for string pattern matching
-const $startsWith: OperatorFunction<any> = (fieldValue, prefix) => {
-  if (typeof fieldValue !== 'string' || typeof prefix !== 'string') return false;
-  return fieldValue.startsWith(prefix);
-};
+// An operator that recurses into a sub-query via the context
+const $none: OperatorFn = (value, operand, context) =>
+  Array.isArray(value) && !value.some(element => context.match(element, operand as Query))
 
-const qubo = createQubo(data, {
-  operators: {
-    $between,
-    $startsWith
+// An operator that compares two fields of the same document via context.root
+const $ltField: OperatorFn = (value, operand, context) => {
+  const other = context.resolve(context.root, String(operand))
+  return typeof value === 'number' && typeof other === 'number' && value < other
+}
+
+const qubo = createQubo({
+  operators: { $between, $none, $ltField },
+})
+
+qubo.find(products, { price: { $between: [100, 200] } })
+qubo.find(products, { inventory: { $none: { qty: { $lt: 1 } } } })
+qubo.find(products, { sold: { $ltField: 'stock' } })
+```
+
+Operator names must start with `$`. Overriding a built-in operator (e.g. `$eq`) is allowed and also changes the implicit equality used by `{ field: value }` shorthands.
+
+## Error Handling
+
+Malformed queries throw a `QuboError` (message prefixed with `[qubo]`):
+
+```typescript
+import { QuboError } from 'qubo'
+
+try {
+  qubo.evaluate(document, { qty: { $unknownOp: 1 } })
+} catch (error) {
+  if (error instanceof QuboError) {
+    // '[qubo] Unsupported operator: $unknownOp'
   }
-});
-
-// Use custom operators
-const results = qubo.find({
-  price: { $between: [100, 200] },
-  name: { $startsWith: 'i' }
-});
+}
 ```
 
 ## API Reference
 
-### `createQubo<T>(dataSource: T[], options?: QuboOptions<T>)`
+### `createQubo(options?: QuboOptions): Qubo`
 
-Creates a new Qubo instance for querying documents.
+Creates a stateless query engine.
 
-#### Parameters
-- `dataSource`: Array of documents to query
-- `options`: Optional configuration
-  - `operators`: Record of custom operators
+- `options.operators` — record of custom operators (names must start with `$`)
 
-#### Returns
-Object with the following methods:
+### `Qubo`
 
-- `find(query: Record<string, unknown>): T[]`
-  - Finds all documents matching the query
-  
-- `findOne(query: Record<string, unknown>): T | undefined`
-  - Finds first document matching the query
-  
-- `evaluate(query: Record<string, unknown>): boolean[]`
-  - Returns array of boolean values indicating which documents match
-  
-- `evaluateOne(document: T, query: Record<string, unknown>): boolean`
-  - Evaluates a single document against the query
+- `evaluate(document: unknown, query: Query): boolean` — tests a single document against a query
+- `compile(query: Query): (document: unknown) => boolean` — binds a query once and returns a reusable predicate
+- `find<T>(data: readonly T[], query: Query): T[]` — returns all matching documents
+- `findOne<T>(data: readonly T[], query: Query): T | undefined` — returns the first matching document
+
+### `OperatorFn`
+
+```typescript
+type OperatorFn = (value: unknown, operand: unknown, context: OperatorContext) => boolean
+
+interface OperatorContext {
+  root: unknown // the root document being evaluated
+  match: (value: unknown, query: Query) => boolean // evaluate a sub-query
+  resolve: (value: unknown, path: string) => unknown // resolve a dot-notation path
+}
+```
+
+## Migrating from 0.2.x
+
+See [MIGRATION.md](./MIGRATION.md) for a step-by-step guide.
 
 ## License
 
-MIT License
-
-Copyright (c) 2025 Ahmet Tinastepe
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+MIT © Ahmet Tinastepe
