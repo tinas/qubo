@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'vite-plus/test'
 
-import { createQubo, QuboError } from '../src/index'
-import type { OperatorFn, Query } from '../src/index'
+import { createQubo, QuboError } from '../src'
+import type { OperatorFn, Query } from '../src'
 
 interface Product {
   id: number

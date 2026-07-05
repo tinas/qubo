@@ -186,10 +186,6 @@ interface OperatorContext {
 }
 ```
 
-## Migrating from 0.2.x
-
-See [MIGRATION.md](./MIGRATION.md) for a step-by-step guide.
-
 ## License
 
 MIT © Ahmet Tinastepe
