@@ -1,2 +1,4 @@
 export { createQubo } from './create-qubo'
-export type { QuboOptions, OperatorFunction } from './types'
+export { QuboError } from './errors'
+export { defaultOperators } from './operators'
+export type { OperatorContext, OperatorFn, Qubo, QuboOptions, Query } from './types'

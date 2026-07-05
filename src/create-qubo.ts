@@ -1,62 +1,49 @@
-import { QuboOptions, OperatorFunction, QuboInstance } from './types'
-import { createComparisonOperators } from './core/operators/comparison-operators'
-import { createElementMatchOperator } from './core/operators/element-match-operator'
-import { evaluateDocument } from './core/evaluate-document'
+import { QuboError } from './errors'
+import { createEvaluator } from './evaluate'
+import { defaultOperators } from './operators/index'
+import type { OperatorFn, Qubo, QuboOptions, Query } from './types'
 
 /**
- * Creates a new Qubo instance for querying and filtering arrays of objects, similar to MongoDB's query syntax.
- *
- * @template T - The type of objects in your data array
- * @param dataSource - An array of objects you want to query
- * @param options - Optional configuration to extend Qubo with custom operators
- * @returns A QuboInstance that provides methods to query your data
+ * Creates a stateless query engine. Data is passed per call, so a single
+ * instance can evaluate any number of documents or collections.
  *
  * @example
  * ```typescript
- * // Your data array
- * const items = [
- *   { id: 1, category: 'foo', tags: ['a', 'b'], value: 100 },
- *   { id: 2, category: 'bar', tags: ['b'], value: 200 },
- *   { id: 3, category: 'baz', tags: ['a', 'c'], value: 300 }
- * ];
+ * const qubo = createQubo()
  *
- * // Create a Qubo instance
- * const qubo = createQubo(items);
+ * qubo.evaluate({ age: 30 }, { age: { $gte: 18 } }) // true
+ * qubo.find(users, { 'address.city': { $in: ['Boston', 'New York'] } })
  *
- * // Find items with value greater than 150
- * const highValue = qubo.find({ value: { $gt: 150 } });
- *
- * // Find first item with tag 'a'
- * const hasTagA = qubo.findOne({ tags: { $elemMatch: 'a' } });
- *
- * // Check if an item matches criteria
- * const meetsThreshold = qubo.evaluateOne(items[0], { value: { $gte: 100 } });
+ * // Custom operators receive a context to recurse into sub-queries:
+ * const custom = createQubo({
+ *   operators: {
+ *     $none: (value, operand, context) =>
+ *       Array.isArray(value) && !value.some(element => context.match(element, operand as Query)),
+ *   },
+ * })
+ * custom.evaluate({ scores: [1, 2] }, { scores: { $none: { $gt: 10 } } }) // true
  * ```
  */
-export function createQubo<T>(dataSource: T[], options?: QuboOptions<T>): QuboInstance<T> {
-  const baseOperators = createComparisonOperators<T>()
-  baseOperators['$elemMatch'] = createElementMatchOperator(baseOperators)
+export function createQubo(options: QuboOptions = {}): Qubo {
+  const operators: Record<string, OperatorFn> = { ...defaultOperators }
 
-  const allOperators: Record<string, OperatorFunction<T>> = {
-    ...baseOperators,
-    ...options?.operators,
+  for (const [name, operator] of Object.entries(options.operators ?? {})) {
+    if (!name.startsWith('$')) {
+      throw new QuboError(`Operator names must start with "$": ${name}`)
+    }
+    if (typeof operator !== 'function') {
+      throw new QuboError(`Operator ${name} must be a function.`)
+    }
+    operators[name] = operator
   }
 
+  const evaluate = createEvaluator(operators)
+  const compile = (query: Query) => (document: unknown) => evaluate(document, query)
+
   return {
-    evaluate(query: Record<string, unknown>): boolean[] {
-      return dataSource.map((document) => evaluateDocument(document, query, allOperators))
-    },
-
-    find(query: Record<string, unknown>): T[] {
-      return dataSource.filter((document) => evaluateDocument(document, query, allOperators))
-    },
-
-    findOne(query: Record<string, unknown>): T | undefined {
-      return dataSource.find((document) => evaluateDocument(document, query, allOperators))
-    },
-
-    evaluateOne(document: T, query: Record<string, unknown>): boolean {
-      return evaluateDocument(document, query, allOperators)
-    },
+    evaluate,
+    compile,
+    find: (data, query) => data.filter(compile(query)),
+    findOne: (data, query) => data.find(compile(query)),
   }
 }
